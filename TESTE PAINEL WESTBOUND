@@ -1,0 +1,2437 @@
+--[[
+     HENRIQSZ7 / V3NENO HUB - SISTEMA DE KEY COM AUTENTICAÇÃO
+     AIMBOT FUNCIONAL INTEGRADO
+]]--
+
+-- ============================================
+-- SISTEMA DE KEY AUTENTICAÇÃO
+-- ============================================
+
+local KEY_SYSTEM = {
+    CURRENT_KEY = "6a4b0e2a-d8f7-4650-8bb4-20a12bbb1a7d",
+    ADMIN_KEY = "henriqsz77",
+    KEY_EXPIRY_TIME = 172800, -- 48 horas
+    KEY_SET_TIME = os.time(),
+    KEY_LINK = "https://work.ink/24Qe/v3neno-hub-westbound-key",
+    SAVE_FILE = "v3neno_hub_key.txt"
+}
+
+local function IsKeyExpired()
+    local currentTime = os.time()
+    local timeElapsed = currentTime - KEY_SYSTEM.KEY_SET_TIME
+    return timeElapsed > KEY_SYSTEM.KEY_EXPIRY_TIME
+end
+
+local function IsValidKey(inputKey)
+    if inputKey == KEY_SYSTEM.ADMIN_KEY then
+        return true
+    end
+    if inputKey == KEY_SYSTEM.CURRENT_KEY then
+        return not IsKeyExpired()
+    end
+    return false
+end
+
+-- ============================================
+-- COMPATIBILIDADE COM EXECUTORES
+-- ============================================
+
+local function SafeGetService(serviceName)
+    local success, service = pcall(function()
+        return game:GetService(serviceName)
+    end)
+    return success and service or nil
+end
+
+-- Serviços com fallback seguro
+local Players = SafeGetService("Players") or game.Players
+local UserInputService = SafeGetService("UserInputService")
+local RunService = SafeGetService("RunService") or game:GetService("RunService")
+local TweenService = SafeGetService("TweenService")
+local Workspace = SafeGetService("Workspace") or workspace
+local ReplicatedStorage = SafeGetService("ReplicatedStorage") or game.ReplicatedStorage
+
+-- Jogador local seguro
+local LocalPlayer = Players and Players.LocalPlayer
+local Camera = Workspace.CurrentCamera
+
+-- ============================================
+-- PAINEL DE LOGIN (SEM AUTO-LOGIN) - CORRIGIDO
+-- ============================================
+
+local function CreateLoginPanel()
+    local LoginScreenGui = Instance.new("ScreenGui")
+    LoginScreenGui.Name = "V3NENO_HUB_LOGIN"
+    LoginScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    LoginScreenGui.Parent = game.CoreGui or LocalPlayer.PlayerGui
+    
+    -- Painel principal
+    local LoginFrame = Instance.new("Frame")
+    LoginFrame.Size = UDim2.new(0, 400, 0, 300) -- Reduzido para ficar mais compacto
+    LoginFrame.Position = UDim2.new(0.5, -200, 0.5, -150)
+    LoginFrame.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
+    LoginFrame.Parent = LoginScreenGui
+    LoginFrame.Active = true
+    LoginFrame.Draggable = true
+    
+    local Corner = Instance.new("UICorner")
+    Corner.CornerRadius = UDim.new(0, 10)
+    Corner.Parent = LoginFrame
+    
+    local Stroke = Instance.new("UIStroke")
+    Stroke.Thickness = 2
+    Stroke.Color = Color3.fromRGB(255, 0, 0)
+    Stroke.Parent = LoginFrame
+    
+    -- Título - MOVIDO PARA CIMA
+    local Title = Instance.new("TextLabel")
+    Title.Size = UDim2.new(1, 0, 0, 40)
+    Title.Position = UDim2.new(0, 0, 0, 15)
+    Title.BackgroundTransparency = 1
+    Title.Text = "V3NENO HUB ACCESS"
+    Title.TextColor3 = Color3.fromRGB(255, 0, 0)
+    Title.Font = Enum.Font.SourceSansBold
+    Title.TextSize = 22
+    Title.Parent = LoginFrame
+    
+    -- Sub título - MOVIDO PARA CIMA E SEM TEXTO DUPLICADO
+    local SubTitle = Instance.new("TextLabel")
+    SubTitle.Size = UDim2.new(1, 0, 0, 30)
+    SubTitle.Position = UDim2.new(0, 0, 0.17, 0)
+    SubTitle.BackgroundTransparency = 1
+    SubTitle.Text = "WESTBOUND PRIVATE SCRIPT"
+    SubTitle.TextColor3 = Color3.fromRGB(200, 200, 200)
+    SubTitle.Font = Enum.Font.SourceSans
+    SubTitle.TextSize = 16
+    SubTitle.TextWrapped = true
+    SubTitle.Parent = LoginFrame
+    
+    -- Botão de fechar COM INTERAÇÃO BONITA
+    local CloseBtn = Instance.new("TextButton")
+    CloseBtn.Size = UDim2.new(0, 30, 0, 30)
+    CloseBtn.Position = UDim2.new(1, -35, 0, 5)
+    CloseBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    CloseBtn.Text = "X"
+    CloseBtn.TextColor3 = Color3.fromRGB(255, 0, 0)
+    CloseBtn.Font = Enum.Font.SourceSansBold
+    CloseBtn.TextSize = 18
+    CloseBtn.Parent = LoginFrame
+    
+    local CloseCorner = Instance.new("UICorner")
+    CloseCorner.CornerRadius = UDim.new(0, 6)
+    CloseCorner.Parent = CloseBtn
+    
+    -- Efeito hover vermelho
+    CloseBtn.MouseEnter:Connect(function()
+        CloseBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+        CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    end)
+    
+    CloseBtn.MouseLeave:Connect(function()
+        CloseBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+        CloseBtn.TextColor3 = Color3.fromRGB(255, 0, 0)
+    end)
+    
+    CloseBtn.MouseButton1Click:Connect(function()
+        LoginScreenGui:Destroy()
+    end)
+    
+    -- Informações da Key - REMOVIDAS (não aparecem mais)
+    
+    -- Botão para copiar link - MOVIDO PARA CIMA
+    local GetKeyBtn = Instance.new("TextButton")
+    GetKeyBtn.Size = UDim2.new(0.9, 0, 0, 40)
+    GetKeyBtn.Position = UDim2.new(0.05, 0, 0.38, 0) -- Movido para cima
+    GetKeyBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    GetKeyBtn.Text = "GET KEY (COPY LINK)"
+    GetKeyBtn.TextColor3 = Color3.fromRGB(255, 0, 0)
+    GetKeyBtn.Font = Enum.Font.SourceSansBold
+    GetKeyBtn.TextSize = 14
+    GetKeyBtn.Parent = LoginFrame
+    
+    local GetKeyCorner = Instance.new("UICorner")
+    GetKeyCorner.CornerRadius = UDim.new(0, 6)
+    GetKeyCorner.Parent = GetKeyBtn
+    
+    GetKeyBtn.MouseButton1Click:Connect(function()
+        if pcall(function() setclipboard(KEY_SYSTEM.KEY_LINK) end) then
+            GetKeyBtn.Text = "LINK COPIED!"
+            GetKeyBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
+            task.wait(1)
+            GetKeyBtn.Text = "GET KEY (COPY LINK)"
+            GetKeyBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+        end
+    end)
+    
+    -- Campo de entrada da key - MOVIDO PARA CIMA
+    local KeyBox = Instance.new("TextBox")
+    KeyBox.Size = UDim2.new(0.9, 0, 0, 40)
+    KeyBox.Position = UDim2.new(0.05, 0, 0.55, 0) -- Movido para cima
+    KeyBox.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    KeyBox.PlaceholderText = "Enter key here..."
+    KeyBox.Text = ""
+    KeyBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+    KeyBox.Font = Enum.Font.SourceSans
+    KeyBox.TextSize = 14
+    KeyBox.Parent = LoginFrame
+    
+    local KeyBoxCorner = Instance.new("UICorner")
+    KeyBoxCorner.CornerRadius = UDim.new(0, 6)
+    KeyBoxCorner.Parent = KeyBox
+    
+    local KeyBoxStroke = Instance.new("UIStroke")
+    KeyBoxStroke.Thickness = 1
+    KeyBoxStroke.Color = Color3.fromRGB(50, 50, 50)
+    KeyBoxStroke.Parent = KeyBox
+    
+    -- Botão de login - MOVIDO PARA CIMA
+    local LoginBtn = Instance.new("TextButton")
+    LoginBtn.Size = UDim2.new(0.9, 0, 0, 45)
+    LoginBtn.Position = UDim2.new(0.05, 0, 0.72, 0) -- Movido para cima
+    LoginBtn.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+    LoginBtn.Text = "ACTIVATE SCRIPT"
+    LoginBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    LoginBtn.Font = Enum.Font.SourceSansBold
+    LoginBtn.TextSize = 16
+    LoginBtn.Parent = LoginFrame
+    
+    local LoginCorner = Instance.new("UICorner")
+    LoginCorner.CornerRadius = UDim.new(0, 6)
+    LoginCorner.Parent = LoginBtn
+    
+    -- Status - MOVIDO PARA CIMA
+    local StatusLabel = Instance.new("TextLabel")
+    StatusLabel.Size = UDim2.new(0.9, 0, 0, 25)
+    StatusLabel.Position = UDim2.new(0.05, 0, 0.85, 0) -- Movido para cima
+    StatusLabel.BackgroundTransparency = 1
+    StatusLabel.Text = ""
+    StatusLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    StatusLabel.Font = Enum.Font.SourceSans
+    StatusLabel.TextSize = 12
+    StatusLabel.Parent = LoginFrame
+    
+    -- FUNÇÃO DE LOGIN (SEM AUTO-LOGIN)
+    local function LoginSuccess()
+        LoginBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
+        LoginBtn.Text = "ACCESS GRANTED"
+        
+        task.wait(1)
+        LoginScreenGui:Destroy()
+        StartV3NENOHUB()
+    end
+    
+    LoginBtn.MouseButton1Click:Connect(function()
+        local inputKey = KeyBox.Text:gsub("%s+", "")
+        
+        if inputKey == "" then
+            StatusLabel.Text = "Enter a key"
+            StatusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+            return
+        end
+        
+        if IsValidKey(inputKey) then
+            if inputKey == KEY_SYSTEM.ADMIN_KEY then
+                StatusLabel.Text = "✓ ADMIN KEY - UNLOCKED!"
+                StatusLabel.TextColor3 = Color3.fromRGB(0, 255, 255)
+            else
+                StatusLabel.Text = "✓ VALID KEY - LOADING..."
+                StatusLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
+            end
+            LoginSuccess()
+        else
+            StatusLabel.Text = "✗ INVALID/EXPIRED KEY"
+            StatusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+            LoginBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+            LoginBtn.Text = "ACCESS DENIED"
+            task.wait(1.5)
+            LoginBtn.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+            LoginBtn.Text = "ACTIVATE SCRIPT"
+            StatusLabel.Text = ""
+        end
+    end)
+end
+
+-- ============================================
+-- FUNÇÃO PRINCIPAL DO V3NENO HUB COMPLETA
+-- ============================================
+
+function StartV3NENOHUB()
+    -- CONFIGURAÇÕES GERAIS
+    local StartTime = os.time()
+    local ToggleKey = Enum.KeyCode.LeftControl
+
+    -- CONFIGURAÇÕES DO AIMBOT
+    local AimbotEnabled = false
+    local AimBind = Enum.KeyCode.E
+    local AimbotTeamCheck = false
+    local FriendCheckEnabled = true
+    
+    -- NOVO: AIMBOT MOBILE (TOGGLE MODE)
+    local AimbotMobileEnabled = false
+    local AimbotMobileAlwaysOn = false
+
+    -- VARIÁVEIS DO AIMBOT
+    getgenv().AimbotEnabled = false
+    getgenv().AimbotKey = AimBind
+    getgenv().AimbotFOV = 150
+    getgenv().FriendCheckEnabled = FriendCheckEnabled
+    getgenv().AimPart = "Head"
+
+    -- CÍRCULO FOV
+    local FOVCircle
+    if not UserInputService.TouchEnabled then
+        local success, circle = pcall(function()
+            local draw = Drawing.new("Circle")
+            draw.Thickness = 1
+            draw.NumSides = 60
+            draw.Radius = getgenv().AimbotFOV
+            draw.Filled = false
+            draw.Visible = false
+            draw.Color = Color3.fromRGB(255, 0, 0)
+            return draw
+        end)
+        if success then FOVCircle = circle end
+    end
+
+    -- FUNÇÕES DO AIMBOT
+    local function IsValidTarget(targetPlr)
+        if not targetPlr or not targetPlr.Character then return false end
+        local humanoid = targetPlr.Character:FindFirstChild("Humanoid")
+        if not humanoid or humanoid.Health <= 0 then return false end
+        
+        local passive = false
+        if targetPlr.Character:FindFirstChild("Passive") then passive = true end
+        if targetPlr:FindFirstChild("States") and targetPlr.States:FindFirstChild("Passive") then 
+            passive = targetPlr.States.Passive.Value 
+        end
+        return not passive
+    end
+
+    local function CheckFriendStatus(targetPlr)
+        local isFriend = false
+        pcall(function() isFriend = LocalPlayer:IsFriendsWith(targetPlr.UserId) end)
+        return isFriend
+    end
+
+    local function GetClosestPlayer()
+        local closest = nil
+        local shortestDistance = getgenv().AimbotFOV
+        local mouseLocation = Vector2.new(0, 0)
+        
+        if UserInputService and not UserInputService.TouchEnabled then
+            pcall(function() mouseLocation = UserInputService:GetMouseLocation() end)
+        elseif UserInputService and UserInputService.TouchEnabled then
+            -- Para mobile, usar posição fixa (centro da tela)
+            mouseLocation = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+        end
+        
+        for _, v in pairs(Players:GetPlayers()) do
+            if v ~= LocalPlayer and IsValidTarget(v) then
+                local head = v.Character and v.Character:FindFirstChild("Head")
+                if head then
+                    if getgenv().FriendCheckEnabled and CheckFriendStatus(v) then continue end
+                    if AimbotTeamCheck and v.Team == LocalPlayer.Team then continue end
+                    
+                    local pos, onScreen = Camera:WorldToViewportPoint(head.Position)
+                    if onScreen then
+                        local distance = (Vector2.new(pos.X, pos.Y) - mouseLocation).Magnitude
+                        if distance < shortestDistance then
+                            closest = head
+                            shortestDistance = distance
+                        end
+                    end
+                end
+            end
+        end
+        return closest
+    end
+
+    -- LOOP DO AIMBOT ATUALIZADO PARA MOBILE
+    local aimbotConnection = RunService.RenderStepped:Connect(function()
+        -- AIMBOT PC (precisa segurar tecla)
+        if getgenv().AimbotEnabled and not AimbotMobileAlwaysOn then
+            if FOVCircle then
+                FOVCircle.Visible = true
+                if UserInputService and not UserInputService.TouchEnabled then
+                    local mousePos = UserInputService:GetMouseLocation()
+                    FOVCircle.Position = mousePos
+                end
+                FOVCircle.Radius = getgenv().AimbotFOV
+            end
+            
+            if UserInputService and UserInputService:IsKeyDown(getgenv().AimbotKey) then
+                local targetPart = GetClosestPlayer()
+                if targetPart then
+                    Camera.CFrame = CFrame.new(Camera.CFrame.Position, targetPart.Position)
+                end
+            end
+        -- AIMBOT MOBILE (sempre ativo quando ligado)
+        elseif AimbotMobileAlwaysOn then
+            local targetPart = GetClosestPlayer()
+            if targetPart then
+                Camera.CFrame = CFrame.new(Camera.CFrame.Position, targetPart.Position)
+            end
+        elseif FOVCircle then
+            FOVCircle.Visible = false
+        end
+    end)
+
+    -- ESTADOS VISUAIS
+    local ESP_Body_Enabled = false
+    local ESP_Names_Enabled = false
+    local ESP_Distance_Enabled = false
+    local ESP_Life_Enabled = false -- NOVA VARIÁVEL PARA ESP LIFE
+    
+    -- NOVO: ESP MOBILE
+    local ESP_Body_Mobile_Enabled = false
+    local ESP_Names_Mobile_Enabled = false
+    local ESP_Distance_Mobile_Enabled = false
+    local MobileESPStorage = {} -- Para armazenar ESP mobile
+    
+    -- VARIÁVEIS MISC (STATES)
+    local AntiLasso_Enabled = false
+    local AntiBreakFree_Enabled = false
+    local AntiLasso_Connection = nil
+    local AntiBreakFree_Connection = nil
+    
+    -- VARIÁVEIS ESP ANIMALS (ATUALIZADAS)
+    local AnimalESP_Enabled = false
+    local AnimalESP_Names_Enabled = false
+    local AnimalESP_Distance_Enabled = false
+
+    -- VARIÁVEIS DE SISTEMA
+    local ESPStorage = { Players = {} }
+    local ActiveConnections = {aimbotConnection}
+    
+    -- VARIÁVEIS PARA GUN MODS
+    local OverpowerGunsEnabled = false
+    local OriginalGunStats = nil
+    local FastFireEnabled = false
+    local FastEquipReloadEnabled = false
+    local NoRecoilEnabled = false
+
+    -- ============================================
+    -- INTERFACE PRINCIPAL
+    -- ============================================
+
+    local ScreenGui = Instance.new("ScreenGui")
+    ScreenGui.Name = "V3NENO_HUB_MAIN"
+    ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    ScreenGui.Parent = game.CoreGui or LocalPlayer.PlayerGui
+
+    -- FUNÇÕES UTILITÁRIAS
+    local function AddCorner(parent, radius)
+        local Corner = Instance.new("UICorner")
+        Corner.CornerRadius = radius or UDim.new(0, 8)
+        Corner.Parent = parent
+        return Corner
+    end
+
+    -- SISTEMA DE NOTIFICAÇÃO
+    local NotificationQueue = {}
+    local ShowingNotification = false
+
+    local function Notify(text)
+        table.insert(NotificationQueue, text:upper())
+        if not ShowingNotification then
+            ShowingNotification = true
+            local function ShowNext()
+                if #NotificationQueue == 0 then
+                    ShowingNotification = false
+                    return
+                end
+                local text = table.remove(NotificationQueue, 1)
+                local NotifyFrame = Instance.new("Frame")
+                NotifyFrame.Size = UDim2.new(0, 250, 0, 45)
+                NotifyFrame.Position = UDim2.new(0.5, -125, 1, 10)
+                NotifyFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+                NotifyFrame.Parent = ScreenGui
+                NotifyFrame.ZIndex = 100
+                AddCorner(NotifyFrame)
+                
+                local Stroke = Instance.new("UIStroke")
+                Stroke.Color = Color3.fromRGB(255, 0, 0)
+                Stroke.Thickness = 2
+                Stroke.Parent = NotifyFrame
+                
+                local Lab = Instance.new("TextLabel")
+                Lab.Size = UDim2.new(1, 0, 1, 0)
+                Lab.BackgroundTransparency = 1
+                Lab.Text = text
+                Lab.TextColor3 = Color3.fromRGB(255, 255, 255)
+                Lab.Font = Enum.Font.SourceSansBold
+                Lab.TextSize = 14
+                Lab.Parent = NotifyFrame
+                
+                NotifyFrame.Position = UDim2.new(0.5, -125, 0.85, 0)
+                task.delay(1.5, function()
+                    NotifyFrame:Destroy()
+                    task.wait(0.1)
+                    ShowNext()
+                end)
+            end
+            ShowNext()
+        end
+    end
+
+    -- ============================================
+    -- SISTEMA DE ESP PLAYERS DO BACKUP (PC)
+    -- ============================================
+
+    local function GetPlayerColor(player)
+        if not player.Team then
+            return Color3.fromRGB(255, 255, 0)  -- Amarelo para Civilian
+        end
+        
+        local teamName = player.Team.Name:lower()
+        
+        if teamName == "cowboys" or teamName == "cowboy" then
+            return Color3.fromRGB(255, 255, 0)  -- Amarelo
+        elseif teamName == "outlaws" or teamName == "outlaw" then
+            return Color3.fromRGB(255, 0, 0)    -- Vermelho
+        elseif teamName == "lawmen" or teamName == "lawman" then
+            return Color3.fromRGB(0, 0, 255)    -- Azul
+        elseif teamName == "civilian" or teamName == "civilians" then
+            return Color3.fromRGB(0, 255, 0)    -- Verde
+        else
+            return Color3.fromRGB(255, 165, 0)  -- Laranja para outros times
+        end
+    end
+
+    local function CreateESP(plr)
+        if ESPStorage.Players[plr] then return end
+        
+        local Highlight = Instance.new("Highlight")
+        Highlight.Name = "V3NENO_P_Highlight"
+        Highlight.FillTransparency = 0.6
+        Highlight.OutlineTransparency = 0
+        Highlight.Enabled = false
+        
+        local NameTag = nil
+        local LifeTag = nil
+        
+        if not UserInputService.TouchEnabled then
+            -- Criar tag para nome
+            local success1, tag1 = pcall(function()
+                local draw = Drawing.new("Text")
+                draw.Visible = false
+                draw.Size = 14
+                draw.Center = true
+                draw.Outline = true
+                return draw
+            end)
+            
+            if success1 then
+                NameTag = tag1
+            end
+            
+            -- Criar tag para vida (SEPARADA)
+            local success2, tag2 = pcall(function()
+                local draw = Drawing.new("Text")
+                draw.Visible = false
+                draw.Size = 12
+                draw.Center = true
+                draw.Outline = true
+                return draw
+            end)
+            
+            if success2 then
+                LifeTag = tag2
+            end
+        end
+        
+        local connection
+        connection = RunService.RenderStepped:Connect(function()
+            if not ESPStorage.Players[plr] then
+                connection:Disconnect()
+                return
+            end
+            
+            local char = plr.Character
+            if char and char.Parent then
+                local root = char:FindFirstChild("HumanoidRootPart")
+                local humanoid = char:FindFirstChild("Humanoid")
+                
+                if root and humanoid and humanoid.Health > 0 then
+                    local pos, onScreen = Camera:WorldToViewportPoint(root.Position)
+                    
+                    -- ESP Body
+                    if ESP_Body_Enabled then
+                        Highlight.Parent = char
+                        Highlight.Enabled = true
+                        
+                        local playerColor = GetPlayerColor(plr)
+                        Highlight.FillColor = playerColor
+                        Highlight.OutlineColor = playerColor
+                    else
+                        Highlight.Enabled = false
+                    end
+                    
+                    -- ESP Info
+                    if onScreen then
+                        -- Nomes e Distância (POSIÇÃO SUPERIOR)
+                        if (ESP_Names_Enabled or ESP_Distance_Enabled) and NameTag then
+                            local localChar = LocalPlayer.Character
+                            local localRoot = localChar and localChar:FindFirstChild("HumanoidRootPart")
+                            
+                            local info = ""
+                            if ESP_Names_Enabled then 
+                                info = plr.Name 
+                            end
+                            
+                            if ESP_Distance_Enabled and localRoot then
+                                local distance = math.floor((root.Position - localRoot.Position).Magnitude)
+                                if info ~= "" then
+                                    info = info .. " [" .. distance .. "m]"
+                                else
+                                    info = "[" .. distance .. "m]"
+                                end
+                            end
+                            
+                            NameTag.Text = info
+                            NameTag.Color = GetPlayerColor(plr)
+                            NameTag.Position = Vector2.new(pos.X, pos.Y - 35) -- POSIÇÃO SUPERIOR
+                            NameTag.Visible = info ~= ""
+                        elseif NameTag then
+                            NameTag.Visible = false
+                        end
+                        
+                        -- Vida (POSIÇÃO INFERIOR SEPARADA)
+                        if ESP_Life_Enabled and LifeTag then
+                            local health = math.floor(humanoid.Health)
+                            local maxHealth = math.floor(humanoid.MaxHealth)
+                            local healthText = "❤️ " .. health .. "/" .. maxHealth
+                            
+                            LifeTag.Text = healthText
+                            
+                            -- Cor baseada na vida (vermelho para baixa, verde para alta)
+                            local healthPercent = health / maxHealth
+                            local color
+                            if healthPercent > 0.7 then
+                                color = Color3.fromRGB(0, 255, 0) -- Verde
+                            elseif healthPercent > 0.3 then
+                                color = Color3.fromRGB(255, 255, 0) -- Amarelo
+                            else
+                                color = Color3.fromRGB(255, 0, 0) -- Vermelho
+                            end
+                            
+                            LifeTag.Color = color
+                            LifeTag.Position = Vector2.new(pos.X, pos.Y + 15) -- POSIÇÃO INFERIOR (NÃO SOBREPÕE)
+                            LifeTag.Visible = true
+                        elseif LifeTag then
+                            LifeTag.Visible = false
+                        end
+                    else
+                        if NameTag then NameTag.Visible = false end
+                        if LifeTag then LifeTag.Visible = false end
+                    end
+                else
+                    Highlight.Enabled = false
+                    if NameTag then NameTag.Visible = false end
+                    if LifeTag then LifeTag.Visible = false end
+                end
+            else
+                Highlight.Enabled = false
+                if NameTag then NameTag.Visible = false end
+                if LifeTag then LifeTag.Visible = false end
+            end
+        end)
+        
+        ESPStorage.Players[plr] = {
+            Highlight = Highlight,
+            NameTag = NameTag,
+            LifeTag = LifeTag, -- ADICIONADO LIFE TAG
+            Connection = connection
+        }
+        
+        plr.AncestryChanged:Connect(function()
+            if not plr.Parent then
+                local data = ESPStorage.Players[plr]
+                if data then
+                    data.Connection:Disconnect()
+                    data.Highlight:Destroy()
+                    if data.NameTag then 
+                        pcall(function() data.NameTag:Remove() end)
+                    end
+                    if data.LifeTag then -- LIMPAR LIFE TAG
+                        pcall(function() data.LifeTag:Remove() end)
+                    end
+                    ESPStorage.Players[plr] = nil
+                end
+            end
+        end)
+    end
+
+    local function InitializeESP()
+        for _, player in pairs(Players:GetPlayers()) do 
+            if player ~= LocalPlayer then 
+                CreateESP(player) 
+            end 
+        end
+
+        Players.PlayerAdded:Connect(function(player)
+            task.wait(1)
+            if player ~= LocalPlayer then
+                CreateESP(player)
+            end
+        end)
+    end
+
+    -- ============================================
+    -- SISTEMA ESP PLAYERS MOBILE (OTIMIZADO)
+    -- ============================================
+
+    local function CreateMobileESP(player)
+        if MobileESPStorage[player] then return end
+        
+        local espData = {
+            Billboard = nil,
+            Connection = nil,
+            Highlight = nil
+        }
+        
+        local function UpdateESP()
+            if not player or not player.Character then 
+                if espData.Billboard then
+                    espData.Billboard:Destroy()
+                    espData.Billboard = nil
+                end
+                if espData.Highlight then
+                    espData.Highlight:Destroy()
+                    espData.Highlight = nil
+                end
+                return
+            end
+            
+            local char = player.Character
+            local rootPart = char:FindFirstChild("HumanoidRootPart")
+            local humanoid = char:FindFirstChild("Humanoid")
+            
+            if not rootPart or not humanoid or humanoid.Health <= 0 then
+                if espData.Billboard then
+                    espData.Billboard.Enabled = false
+                end
+                if espData.Highlight then
+                    espData.Highlight.Enabled = false
+                end
+                return
+            end
+            
+            -- ESP BODY MOBILE
+            if ESP_Body_Mobile_Enabled then
+                if not espData.Highlight then
+                    espData.Highlight = Instance.new("Highlight")
+                    espData.Highlight.Name = "V3NENO_MOBILE_HIGHLIGHT"
+                    espData.Highlight.FillTransparency = 0.7
+                    espData.Highlight.OutlineTransparency = 0
+                    espData.Highlight.FillColor = GetPlayerColor(player)
+                    espData.Highlight.OutlineColor = GetPlayerColor(player)
+                    espData.Highlight.Parent = char
+                end
+                espData.Highlight.Enabled = true
+            elseif espData.Highlight then
+                espData.Highlight.Enabled = false
+            end
+            
+            -- ESP INFO (NAMES + DISTANCE)
+            if ESP_Names_Mobile_Enabled or ESP_Distance_Mobile_Enabled then
+                if not espData.Billboard then
+                    espData.Billboard = Instance.new("BillboardGui")
+                    espData.Billboard.Name = "V3NENO_MOBILE_ESP"
+                    espData.Billboard.AlwaysOnTop = true
+                    espData.Billboard.Size = UDim2.new(0, 200, 0, 50)
+                    espData.Billboard.StudsOffset = Vector3.new(0, 3, 0)
+                    espData.Billboard.Adornee = rootPart
+                    espData.Billboard.Parent = char
+                    
+                    local nameLabel = Instance.new("TextLabel")
+                    nameLabel.Name = "NameLabel"
+                    nameLabel.Size = UDim2.new(1, 0, 0.5, 0)
+                    nameLabel.Position = UDim2.new(0, 0, 0, 0)
+                    nameLabel.BackgroundTransparency = 1
+                    nameLabel.TextColor3 = GetPlayerColor(player)
+                    nameLabel.Font = Enum.Font.SourceSansBold
+                    nameLabel.TextSize = 14
+                    nameLabel.TextStrokeTransparency = 0
+                    nameLabel.Parent = espData.Billboard
+                    
+                    local distLabel = Instance.new("TextLabel")
+                    distLabel.Name = "DistLabel"
+                    distLabel.Size = UDim2.new(1, 0, 0.5, 0)
+                    distLabel.Position = UDim2.new(0, 0, 0.5, 0)
+                    distLabel.BackgroundTransparency = 1
+                    distLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+                    distLabel.Font = Enum.Font.SourceSans
+                    distLabel.TextSize = 12
+                    distLabel.TextStrokeTransparency = 0.5
+                    distLabel.Parent = espData.Billboard
+                end
+                
+                espData.Billboard.Enabled = true
+                
+                -- Atualizar texto
+                local nameLabel = espData.Billboard:FindFirstChild("NameLabel")
+                local distLabel = espData.Billboard:FindFirstChild("DistLabel")
+                
+                if nameLabel then
+                    nameLabel.Visible = ESP_Names_Mobile_Enabled
+                    if ESP_Names_Mobile_Enabled then
+                        nameLabel.Text = player.Name
+                    end
+                end
+                
+                if distLabel and LocalPlayer.Character then
+                    local localRoot = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                    distLabel.Visible = ESP_Distance_Mobile_Enabled
+                    if ESP_Distance_Mobile_Enabled and localRoot then
+                        local distance = math.floor((rootPart.Position - localRoot.Position).Magnitude)
+                        distLabel.Text = "[" .. distance .. "m]"
+                    end
+                end
+            elseif espData.Billboard then
+                espData.Billboard.Enabled = false
+            end
+        end
+        
+        -- Conexão de atualização
+        espData.Connection = RunService.Heartbeat:Connect(UpdateESP)
+        
+        MobileESPStorage[player] = espData
+        
+        -- Limpar quando player sair
+        player.AncestryChanged:Connect(function()
+            if not player.Parent then
+                local data = MobileESPStorage[player]
+                if data then
+                    if data.Connection then
+                        data.Connection:Disconnect()
+                    end
+                    if data.Billboard then
+                        data.Billboard:Destroy()
+                    end
+                    if data.Highlight then
+                        data.Highlight:Destroy()
+                    end
+                    MobileESPStorage[player] = nil
+                end
+            end
+        end)
+    end
+
+    local function InitializeMobileESP()
+        -- Limpar ESP mobile existente
+        for player, data in pairs(MobileESPStorage) do
+            if data.Connection then
+                data.Connection:Disconnect()
+            end
+            if data.Billboard then
+                data.Billboard:Destroy()
+            end
+            if data.Highlight then
+                data.Highlight:Destroy()
+            end
+        end
+        MobileESPStorage = {}
+        
+        -- Criar ESP para jogadores existentes
+        for _, player in pairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer then
+                CreateMobileESP(player)
+            end
+        end
+        
+        -- Conectar novos jogadores
+        Players.PlayerAdded:Connect(function(player)
+            task.wait(1)
+            if player ~= LocalPlayer then
+                CreateMobileESP(player)
+            end
+        end)
+    end
+
+    -- ============================================
+    -- SISTEMA ESP ANIMALS ATUALIZADO (SEUS SCRIPTS)
+    -- ============================================
+
+    -- FUNÇÃO PARA OBTER COR DA RARIDADE
+    local function GetRarityColor(model)
+        local n = model.Name:lower()
+        if n:find("direwolf") or n:find("legendary") then 
+            return Color3.fromRGB(255, 215, 0) -- Dourado
+        end
+        if n:find("rare") then 
+            return Color3.fromRGB(255, 0, 0) -- Vermelho
+        end
+        if n:find("uncommon") then 
+            return Color3.fromRGB(0, 255, 255) -- Ciano
+        end
+        return Color3.fromRGB(200, 200, 200) -- Cinza
+    end
+
+    -- FUNÇÃO PARA OBTER NOME LIMPO
+    local function GetCleanName(model)
+        local n = model.Name:gsub("%[Wild%]", ""):gsub("%[wild%]", ""):split("{")[1]:match("^%s*(.-)%s*$")
+        return (n == "DireWolf") and "Legendary Dire Wolf" or n
+    end
+
+    -- VARIÁVEIS GLOBAIS PARA ESP ANIMALS
+    _G.AnimalBody_Active = false
+    _G.AnimalNames_Active = false
+    _G.AnimalDist_Active = false
+
+    -- CONEXÕES PARA ESP ANIMALS
+    local AnimalBodyConnection = nil
+    local AnimalNamesConnection = nil
+    local AnimalDistConnection = nil
+
+    -- FUNÇÃO PARA LIMPAR ESP ANIMALS
+    local function CleanupAnimalESP()
+        -- Limpar corpo
+        if AnimalBodyConnection then
+            AnimalBodyConnection:Disconnect()
+            AnimalBodyConnection = nil
+        end
+        
+        -- Limpar nomes
+        if AnimalNamesConnection then
+            AnimalNamesConnection:Disconnect()
+            AnimalNamesConnection = nil
+        end
+        
+        -- Limpar distância
+        if AnimalDistConnection then
+            AnimalDistConnection:Disconnect()
+            AnimalDistConnection = nil
+        end
+        
+        -- Remover objetos do ESP
+        local folder = Workspace:FindFirstChild("Animals")
+        if folder then
+            for _, animal in pairs(folder:GetChildren()) do
+                if animal:IsA("Model") then
+                    if animal:FindFirstChild("TRXSH_B") then
+                        animal.TRXSH_B:Destroy()
+                    end
+                    if animal:FindFirstChild("TRXSH_ESP") then
+                        animal.TRXSH_ESP:Destroy()
+                    end
+                end
+            end
+        end
+        
+        Notify("ANIMAL ESP CLEANED")
+    end
+
+    -- FUNÇÃO PARA ESP BODY
+    local function ToggleAnimalBody(enabled)
+        _G.AnimalBody_Active = enabled
+        AnimalESP_Enabled = enabled
+        
+        if AnimalBodyConnection then
+            AnimalBodyConnection:Disconnect()
+            AnimalBodyConnection = nil
+        end
+        
+        if enabled then
+            AnimalBodyConnection = RunService.Heartbeat:Connect(function()
+                local folder = Workspace:FindFirstChild("Animals")
+                if not folder then return end
+                
+                for _, animal in pairs(folder:GetChildren()) do
+                    if _G.AnimalBody_Active and animal:IsA("Model") then
+                        if not animal:FindFirstChild("TRXSH_B") then
+                            local h = Instance.new("Highlight", animal)
+                            h.Name = "TRXSH_B"
+                            h.FillColor = GetRarityColor(animal)
+                            h.FillTransparency = 0.4
+                            h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+                            h.OutlineColor = Color3.fromRGB(255, 255, 255)
+                            h.OutlineTransparency = 0
+                        end
+                    else
+                        if animal:FindFirstChild("TRXSH_B") then 
+                            animal.TRXSH_B:Destroy() 
+                        end
+                    end
+                end
+            end)
+            Notify("ANIMAL ESP BODY ENABLED")
+        else
+            local folder = Workspace:FindFirstChild("Animals")
+            if folder then
+                for _, animal in pairs(folder:GetChildren()) do
+                    if animal:FindFirstChild("TRXSH_B") then 
+                        animal.TRXSH_B:Destroy() 
+                    end
+                end
+            end
+            Notify("ANIMAL ESP BODY DISABLED")
+        end
+    end
+
+    -- FUNÇÃO PARA ESP NAMES
+    local function ToggleAnimalNames(enabled)
+        _G.AnimalNames_Active = enabled
+        AnimalESP_Names_Enabled = enabled
+        
+        if AnimalNamesConnection then
+            AnimalNamesConnection:Disconnect()
+            AnimalNamesConnection = nil
+        end
+        
+        if enabled then
+            AnimalNamesConnection = RunService.Heartbeat:Connect(function()
+                local folder = Workspace:FindFirstChild("Animals")
+                if not folder then return end
+                
+                for _, animal in pairs(folder:GetChildren()) do
+                    if _G.AnimalNames_Active and animal:IsA("Model") then
+                        local root = animal.PrimaryPart or animal:FindFirstChildWhichIsA("BasePart")
+                        if root then
+                            local b = animal:FindFirstChild("TRXSH_ESP") or Instance.new("BillboardGui", animal)
+                            b.Name = "TRXSH_ESP"
+                            b.AlwaysOnTop = true
+                            b.Size = UDim2.new(0, 200, 0, 50)
+                            b.StudsOffset = Vector3.new(0, 3, 0)
+                            b.Adornee = root
+                            
+                            local l = b:FindFirstChild("NameLabel") or Instance.new("TextLabel", b)
+                            l.Name = "NameLabel"
+                            l.BackgroundTransparency = 1
+                            l.Size = UDim2.new(1, 0, 0.5, 0)
+                            l.Position = UDim2.new(0, 0, 0, 0)
+                            l.Text = GetCleanName(animal)
+                            l.TextColor3 = GetRarityColor(animal)
+                            l.Font = Enum.Font.SourceSansBold
+                            l.TextSize = 18
+                            l.TextStrokeTransparency = 0
+                        end
+                    else
+                        local b = animal:FindFirstChild("TRXSH_ESP")
+                        if b and b:FindFirstChild("NameLabel") then 
+                            b.NameLabel:Destroy() 
+                        end
+                        if b and not b:FindFirstChildWhichIsA("TextLabel") then 
+                            b:Destroy() 
+                        end
+                    end
+                end
+            end)
+            Notify("ANIMAL NAMES ENABLED")
+        else
+            local folder = Workspace:FindFirstChild("Animals")
+            if folder then
+                for _, animal in pairs(folder:GetChildren()) do
+                    local b = animal:FindFirstChild("TRXSH_ESP")
+                    if b and b:FindFirstChild("NameLabel") then 
+                        b.NameLabel:Destroy() 
+                    end
+                    if b and not b:FindFirstChildWhichIsA("TextLabel") then 
+                        b:Destroy() 
+                    end
+                end
+            end
+            Notify("ANIMAL NAMES DISABLED")
+        end
+    end
+
+    -- FUNÇÃO PARA ESP DISTANCE
+    local function ToggleAnimalDistance(enabled)
+        _G.AnimalDist_Active = enabled
+        AnimalESP_Distance_Enabled = enabled
+        
+        if AnimalDistConnection then
+            AnimalDistConnection:Disconnect()
+            AnimalDistConnection = nil
+        end
+        
+        if enabled then
+            AnimalDistConnection = RunService.Heartbeat:Connect(function()
+                local folder = Workspace:FindFirstChild("Animals")
+                if not folder then return end
+                
+                for _, animal in pairs(folder:GetChildren()) do
+                    if _G.AnimalDist_Active and animal:IsA("Model") then
+                        local root = animal.PrimaryPart or animal:FindFirstChildWhichIsA("BasePart")
+                        if root then
+                            local b = animal:FindFirstChild("TRXSH_ESP") or Instance.new("BillboardGui", animal)
+                            b.Name = "TRXSH_ESP"
+                            b.AlwaysOnTop = true
+                            b.Size = UDim2.new(0, 200, 0, 50)
+                            b.StudsOffset = Vector3.new(0, 3, 0)
+                            b.Adornee = root
+                            
+                            local d = b:FindFirstChild("DistLabel") or Instance.new("TextLabel", b)
+                            d.Name = "DistLabel"
+                            d.BackgroundTransparency = 1
+                            d.Size = UDim2.new(1, 0, 0.5, 0)
+                            d.Position = UDim2.new(0, 0, 0.5, 0)
+                            d.TextColor3 = Color3.fromRGB(255, 255, 255)
+                            d.Font = Enum.Font.SourceSansBold
+                            d.TextSize = 14
+                            d.TextStrokeTransparency = 0.5
+                            
+                            if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                                local dist = math.floor((LocalPlayer.Character.HumanoidRootPart.Position - root.Position).Magnitude)
+                                d.Text = "[" .. dist .. "m]"
+                            end
+                        end
+                    else
+                        local b = animal:FindFirstChild("TRXSH_ESP")
+                        if b and b:FindFirstChild("DistLabel") then 
+                            b.DistLabel:Destroy() 
+                        end
+                        if b and not b:FindFirstChildWhichIsA("TextLabel") then 
+                            b:Destroy() 
+                        end
+                    end
+                end
+            end)
+            Notify("ANIMAL DISTANCE ENABLED")
+        else
+            local folder = Workspace:FindFirstChild("Animals")
+            if folder then
+                for _, animal in pairs(folder:GetChildren()) do
+                    local b = animal:FindFirstChild("TRXSH_ESP")
+                    if b and b:FindFirstChild("DistLabel") then 
+                        b.DistLabel:Destroy() 
+                    end
+                    if b and not b:FindFirstChildWhichIsA("TextLabel") then 
+                        b:Destroy() 
+                    end
+                end
+            end
+            Notify("ANIMAL DISTANCE DISABLED")
+        end
+    end
+
+    -- ============================================
+    -- OVERPOWER GUNS MOD (COM TOGGLE ATIVAR/DESATIVAR)
+    -- ============================================
+
+    local function ApplyOverpowerGuns()
+        if not ReplicatedStorage:FindFirstChild("GunScripts") then
+            Notify("ERROR: GunScripts not found!")
+            return false
+        end
+        
+        local gunStats = ReplicatedStorage.GunScripts:FindFirstChild("GunStats")
+        if not gunStats then
+            Notify("ERROR: GunStats not found!")
+            return false
+        end
+        
+        local success, v1 = pcall(function()
+            return require(gunStats)
+        end)
+        
+        if not success or type(v1) ~= "table" then
+            Notify("ERROR: Failed to load gun stats!")
+            return false
+        end
+        
+        -- Salvar estatísticas originais
+        if not OriginalGunStats then
+            OriginalGunStats = {}
+            for name, stats in pairs(v1) do
+                if type(stats) == "table" then
+                    OriginalGunStats[name] = {}
+                    for k, v in pairs(stats) do
+                        OriginalGunStats[name][k] = v
+                    end
+                end
+            end
+        end
+        
+        -- Tabela de estatísticas Overpowered
+        local FastFireStats = {
+            ["Colt .45"] = {["Damage"] = 95, ["prepTime"] = 0.01, ["ReloadSpeed"] = 0.01, ["BulletSpeed"] = 5000, ["HipFireAccuracy"] = 0, ["ZoomAccuracy"] = 0, ["AutoFire"] = true, ["camShakeResist"] = 10000, ["equipTime"] = 0.01, ["EquipDelay"] = 0, ["Spread"] = 0},
+            ["Henry Rifle"] = {["Damage"] = 95, ["prepTime"] = 0.01, ["ReloadSpeed"] = 0.01, ["BulletSpeed"] = 8000, ["HipFireAccuracy"] = 0, ["ZoomAccuracy"] = 0, ["AutoFire"] = true, ["camShakeResist"] = 10000, ["equipTime"] = 0.01, ["EquipDelay"] = 0, ["Spread"] = 0},
+            ["Sawed-Off Shotgun"] = {["Damage"] = 95, ["prepTime"] = 0.01, ["ReloadSpeed"] = 0.01, ["BulletSpeed"] = 5000, ["HipFireAccuracy"] = 0, ["ZoomAccuracy"] = 0, ["AutoFire"] = true, ["BulletCount"] = 15, ["camShakeResist"] = 10000, ["equipTime"] = 0.01, ["EquipDelay"] = 0, ["Spread"] = 0},
+            ["Double Barrel Shotgun"] = {["Damage"] = 95, ["prepTime"] = 0.01, ["ReloadSpeed"] = 0.01, ["BulletSpeed"] = 5000, ["HipFireAccuracy"] = 0, ["ZoomAccuracy"] = 0, ["AutoFire"] = true, ["BulletCount"] = 15, ["camShakeResist"] = 10000, ["equipTime"] = 0.01, ["EquipDelay"] = 0, ["Spread"] = 0},
+            ["Schofield Revolver"] = {["Damage"] = 95, ["prepTime"] = 0.01, ["ReloadSpeed"] = 0.01, ["BulletSpeed"] = 5000, ["HipFireAccuracy"] = 0, ["ZoomAccuracy"] = 0, ["AutoFire"] = true, ["camShakeResist"] = 10000, ["equipTime"] = 0.01, ["EquipDelay"] = 0, ["Spread"] = 0},
+            ["Sharps Rifle"] = {["Damage"] = 100, ["prepTime"] = 0.01, ["ReloadSpeed"] = 0.01, ["BulletSpeed"] = 10000, ["HipFireAccuracy"] = 0, ["ZoomAccuracy"] = 0, ["AutoFire"] = true, ["camShakeResist"] = 10000, ["equipTime"] = 0.01, ["EquipDelay"] = 0, ["Spread"] = 0},
+            ["Gold Buffalo Rifle"] = {["Damage"] = 100, ["prepTime"] = 0.01, ["ReloadSpeed"] = 0.01, ["BulletSpeed"] = 10000, ["HipFireAccuracy"] = 0, ["ZoomAccuracy"] = 0, ["AutoFire"] = true, ["camShakeResist"] = 10000, ["equipTime"] = 0.01, ["EquipDelay"] = 0, ["Spread"] = 0},
+            ["Volcanic Pistol"] = {["Damage"] = 95, ["prepTime"] = 0.01, ["ReloadSpeed"] = 0.01, ["BulletSpeed"] = 5000, ["HipFireAccuracy"] = 0, ["ZoomAccuracy"] = 0, ["AutoFire"] = true, ["camShakeResist"] = 10000, ["equipTime"] = 0.01, ["EquipDelay"] = 0, ["Spread"] = 0},
+            ["Winchester Rifle"] = {["Damage"] = 95, ["prepTime"] = 0.01, ["ReloadSpeed"] = 0.01, ["BulletSpeed"] = 8000, ["HipFireAccuracy"] = 0, ["ZoomAccuracy"] = 0, ["AutoFire"] = true, ["camShakeResist"] = 10000, ["equipTime"] = 0.01, ["EquipDelay"] = 0, ["Spread"] = 0},
+            ["LeMat Revolver"] = {["Damage"] = 95, ["prepTime"] = 0.01, ["ReloadSpeed"] = 0.01, ["BulletSpeed"] = 5000, ["HipFireAccuracy"] = 0, ["ZoomAccuracy"] = 0, ["AutoFire"] = true, ["camShakeResist"] = 10000, ["equipTime"] = 0.01, ["EquipDelay"] = 0, ["Spread"] = 0},
+            ["Mauser Pistol"] = {["Damage"] = 95, ["prepTime"] = 0.01, ["ReloadSpeed"] = 0.01, ["BulletSpeed"] = 6000, ["HipFireAccuracy"] = 0, ["ZoomAccuracy"] = 0, ["AutoFire"] = true, ["camShakeResist"] = 10000, ["equipTime"] = 0.01, ["EquipDelay"] = 0, ["Spread"] = 0},
+            ["Bow"] = {["Damage"] = 100, ["prepTime"] = 0.01, ["ReloadSpeed"] = 0.01, ["BulletSpeed"] = 3000, ["HipFireAccuracy"] = 0, ["ZoomAccuracy"] = 0, ["AutoFire"] = true, ["camShakeResist"] = 10000, ["equipTime"] = 0.01, ["EquipDelay"] = 0, ["Spread"] = 0},
+            ["Pump-action Shotgun"] = {["Damage"] = 95, ["prepTime"] = 0.01, ["ReloadSpeed"] = 0.01, ["BulletSpeed"] = 5000, ["HipFireAccuracy"] = 0, ["ZoomAccuracy"] = 0, ["AutoFire"] = true, ["BulletCount"] = 15, ["camShakeResist"] = 10000, ["equipTime"] = 0.01, ["EquipDelay"] = 0, ["Spread"] = 0},
+            ["Colt Navy"] = {["Damage"] = 95, ["prepTime"] = 0.01, ["ReloadSpeed"] = 0.01, ["BulletSpeed"] = 5000, ["HipFireAccuracy"] = 0, ["ZoomAccuracy"] = 0, ["AutoFire"] = true, ["camShakeResist"] = 10000, ["equipTime"] = 0.01, ["EquipDelay"] = 0, ["Spread"] = 0},
+            ["Mosin-Nagant"] = {["Damage"] = 95, ["prepTime"] = 0.01, ["ReloadSpeed"] = 0.01, ["BulletSpeed"] = 10000, ["HipFireAccuracy"] = 0, ["ZoomAccuracy"] = 0, ["AutoFire"] = true, ["camShakeResist"] = 10000, ["equipTime"] = 0.01, ["EquipDelay"] = 0, ["Spread"] = 0},
+            ["Gold Mosin"] = {["Damage"] = 100, ["prepTime"] = 0.01, ["ReloadSpeed"] = 0.01, ["BulletSpeed"] = 10000, ["HipFireAccuracy"] = 0, ["ZoomAccuracy"] = 0, ["AutoFire"] = true, ["camShakeResist"] = 10000, ["equipTime"] = 0.01, ["EquipDelay"] = 0, ["Spread"] = 0},
+            ["Bergmann No. 3"] = {["Damage"] = 95, ["prepTime"] = 0.01, ["ReloadSpeed"] = 0.01, ["BulletSpeed"] = 6000, ["HipFireAccuracy"] = 0, ["ZoomAccuracy"] = 0, ["AutoFire"] = true, ["camShakeResist"] = 10000, ["equipTime"] = 0.01, ["EquipDelay"] = 0, ["Spread"] = 0},
+            ["Colt 1911"] = {["Damage"] = 95, ["prepTime"] = 0.01, ["ReloadSpeed"] = 0.01, ["BulletSpeed"] = 6000, ["HipFireAccuracy"] = 0, ["ZoomAccuracy"] = 0, ["AutoFire"] = true, ["camShakeResist"] = 10000, ["equipTime"] = 0.01, ["EquipDelay"] = 0, ["Spread"] = 0},
+            ["Double-Action Revolver"] = {["Damage"] = 95, ["prepTime"] = 0.01, ["ReloadSpeed"] = 0.01, ["BulletSpeed"] = 5000, ["HipFireAccuracy"] = 0, ["ZoomAccuracy"] = 0, ["AutoFire"] = true, ["camShakeResist"] = 10000, ["equipTime"] = 0.01, ["EquipDelay"] = 0, ["Spread"] = 0},
+            ["Mondragon"] = {["Damage"] = 95, ["prepTime"] = 0.01, ["ReloadSpeed"] = 0.01, ["BulletSpeed"] = 9000, ["HipFireAccuracy"] = 0, ["ZoomAccuracy"] = 0, ["AutoFire"] = true, ["camShakeResist"] = 10000, ["equipTime"] = 0.01, ["EquipDelay"] = 0, ["Spread"] = 0},
+            ["Gold Mondragon"] = {["Damage"] = 100, ["prepTime"] = 0.01, ["ReloadSpeed"] = 0.01, ["BulletSpeed"] = 9000, ["HipFireAccuracy"] = 0, ["ZoomAccuracy"] = 0, ["AutoFire"] = true, ["camShakeResist"] = 10000, ["equipTime"] = 0.01, ["EquipDelay"] = 0, ["Spread"] = 0},
+            ["Joalland Pistol"] = {["Damage"] = 120, ["prepTime"] = 0.01, ["ReloadSpeed"] = 0.01, ["BulletSpeed"] = 6000, ["HipFireAccuracy"] = 0, ["ZoomAccuracy"] = 0, ["AutoFire"] = true, ["camShakeResist"] = 10000, ["equipTime"] = 0.01, ["EquipDelay"] = 0, ["Spread"] = 0},
+            ["Winchester Model 94"] = {["Damage"] = 95, ["prepTime"] = 0.01, ["ReloadSpeed"] = 0.01, ["BulletSpeed"] = 8000, ["HipFireAccuracy"] = 0, ["ZoomAccuracy"] = 0, ["AutoFire"] = true, ["camShakeResist"] = 10000, ["equipTime"] = 0.01, ["EquipDelay"] = 0, ["Spread"] = 0},
+            ["Colt Lightning"] = {["Damage"] = 95, ["prepTime"] = 0.01, ["ReloadSpeed"] = 0.01, ["BulletSpeed"] = 8000, ["HipFireAccuracy"] = 0, ["ZoomAccuracy"] = 0, ["AutoFire"] = true, ["camShakeResist"] = 10000, ["equipTime"] = 0.01, ["EquipDelay"] = 0, ["Spread"] = 0},
+            ["Remington"] = {["Damage"] = 95, ["prepTime"] = 0.01, ["ReloadSpeed"] = 0.01, ["BulletSpeed"] = 5000, ["HipFireAccuracy"] = 0, ["ZoomAccuracy"] = 0, ["AutoFire"] = true, ["camShakeResist"] = 10000, ["equipTime"] = 0.01, ["EquipDelay"] = 0, ["Spread"] = 0},
+            ["Gold Remington"] = {["Damage"] = 100, ["prepTime"] = 0.01, ["ReloadSpeed"] = 0.01, ["BulletSpeed"] = 5000, ["HipFireAccuracy"] = 0, ["ZoomAccuracy"] = 0, ["AutoFire"] = true, ["camShakeResist"] = 10000, ["equipTime"] = 0.01, ["EquipDelay"] = 0, ["Spread"] = 0},
+            ["Martini-Henry"] = {["Damage"] = 100, ["prepTime"] = 0.01, ["ReloadSpeed"] = 0.01, ["BulletSpeed"] = 10000, ["HipFireAccuracy"] = 0, ["ZoomAccuracy"] = 0, ["AutoFire"] = true, ["camShakeResist"] = 10000, ["equipTime"] = 0.01, ["EquipDelay"] = 0, ["Spread"] = 0}
+        }
+
+        for name, stats in pairs(FastFireStats) do
+            if v1[name] then 
+                for k, v in pairs(stats) do 
+                    v1[name][k] = v 
+                end 
+            end
+        end
+
+        -- VINCULAR VARIAÇÕES
+        v1["Ornate Winchester"] = v1["Winchester Rifle"]
+        v1["Ornate Colt"] = v1["Colt .45"]
+        v1["Gold Schofield"] = v1["Schofield Revolver"]
+        v1["Engraved Double-Action"] = v1["Double-Action Revolver"]
+        v1["Volcanic Model 94"] = v1["Winchester Model 94"]
+        v1["Volcanic Remington"] = v1.Remington
+        v1["Winter's Bounty"] = v1["Gold Buffalo Rifle"]
+        v1["Dark Colt Navy"] = v1["Colt Navy"]
+        v1["Dark Mosin"] = v1["Mosin-Nagant"]
+        v1["Ice Winchester 94"] = v1["Winchester Model 94"]
+        v1.Flintlock = v1["Joalland Pistol"]
+        v1.Musket = v1["Martini-Henry"]
+        v1["Ice Mosin"] = v1["Mosin-Nagant"]
+        v1["Maple Bow"] = v1.Bow
+        
+        Notify("OVER POWER GUNS MOD ENABLED!")
+        Notify("ULTRA FAST + INSTANT EQUIP + NO RECOIL!")
+        return true
+    end
+
+    local function RestoreOriginalGuns()
+        if not OriginalGunStats or not ReplicatedStorage:FindFirstChild("GunScripts") then
+            Notify("Cannot restore original gun stats")
+            return false
+        end
+        
+        local gunStats = ReplicatedStorage.GunScripts:FindFirstChild("GunStats")
+        if not gunStats then return false end
+        
+        local success, v1 = pcall(function()
+            return require(gunStats)
+        end)
+        
+        if not success or type(v1) ~= "table" then
+            return false
+        end
+        
+        -- Restaurar estatísticas originais
+        for name, originalStats in pairs(OriginalGunStats) do
+            if v1[name] then
+                for k, v in pairs(originalStats) do
+                    v1[name][k] = v
+                end
+            end
+        end
+        
+        Notify("OVER POWER GUNS MOD DISABLED")
+        return true
+    end
+
+    local function ToggleOverpowerGuns(enabled)
+        OverpowerGunsEnabled = enabled
+        if enabled then
+            local success = ApplyOverpowerGuns()
+            if not success then
+                OverpowerGunsEnabled = false
+            end
+        else
+            RestoreOriginalGuns()
+        end
+    end
+
+    -- ============================================
+    -- CONSTRUÇÃO DA INTERFACE
+    -- ============================================
+
+    local MainFrame = Instance.new("Frame")
+    MainFrame.Name = "MainFrame"
+    MainFrame.Parent = ScreenGui
+    MainFrame.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
+    MainFrame.Position = UDim2.new(0.3, 0, 0.25, 0)
+    MainFrame.Size = UDim2.new(0, 600, 0, 400)
+    MainFrame.Active = true
+    MainFrame.Draggable = true
+    AddCorner(MainFrame, UDim.new(0, 10))
+    
+    local MStroke = Instance.new("UIStroke")
+    MStroke.Thickness = 2
+    MStroke.Color = Color3.fromRGB(45, 45, 45)
+    MStroke.Parent = MainFrame
+
+    -- TÍTULO
+    local Title = Instance.new("TextLabel")
+    Title.Parent = MainFrame
+    Title.Text = "V3NENO HUB - WESTBOUND PVP"
+    Title.TextColor3 = Color3.fromRGB(255, 0, 0)
+    Title.TextSize = 16
+    Title.Font = Enum.Font.SourceSansBold
+    Title.Position = UDim2.new(0, 20, 0, 10)
+    Title.Size = UDim2.new(0, 350, 0, 30)
+    Title.BackgroundTransparency = 1
+    Title.TextXAlignment = Enum.TextXAlignment.Left
+
+    -- TIMER
+    local TimerLabel = Instance.new("TextLabel")
+    TimerLabel.Parent = MainFrame
+    TimerLabel.Size = UDim2.new(0, 120, 0, 20)
+    TimerLabel.Position = UDim2.new(0.72, 0, 0.04, 0)
+    TimerLabel.BackgroundTransparency = 1
+    TimerLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+    TimerLabel.Font = Enum.Font.Code
+    TimerLabel.TextSize = 12
+    TimerLabel.TextXAlignment = Enum.TextXAlignment.Right
+
+    local timerConnection = RunService.RenderStepped:Connect(function()
+        local seconds = os.time() - StartTime
+        local h = math.floor(seconds / 3600)
+        local m = math.floor((seconds % 3600) / 60)
+        local s = seconds % 60
+        TimerLabel.Text = string.format("Online: %02d:%02d:%02d", h, m, s)
+    end)
+    table.insert(ActiveConnections, timerConnection)
+
+    -- BARRA LATERAL
+    local SideBar = Instance.new("Frame")
+    SideBar.Parent = MainFrame
+    SideBar.BackgroundColor3 = Color3.fromRGB(18, 18, 18)
+    SideBar.Position = UDim2.new(0.02, 0, 0.15, 0)
+    SideBar.Size = UDim2.new(0, 140, 0, 255)
+    AddCorner(SideBar)
+
+    local SideLayout = Instance.new("UIListLayout")
+    SideLayout.Parent = SideBar
+    SideLayout.Padding = UDim.new(0, 2)
+    SideLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+
+    -- CONTEÚDO PRINCIPAL
+    local ContentHolder = Instance.new("Frame")
+    ContentHolder.Parent = MainFrame
+    ContentHolder.BackgroundColor3 = Color3.fromRGB(18, 18, 18)
+    ContentHolder.Position = UDim2.new(0.28, 0, 0.15, 0)
+    ContentHolder.Size = UDim2.new(0, 410, 0, 325)
+    AddCorner(ContentHolder)
+
+    -- GERENCIADOR DE PÁGINAS
+    local Pages = {}
+    local function CreatePage(name)
+        local Page = Instance.new("ScrollingFrame")
+        Page.Name = name .. "Page"
+        Page.Parent = ContentHolder
+        Page.Size = UDim2.new(1, 0, 1, 0)
+        Page.BackgroundTransparency = 1
+        Page.Visible = false
+        Page.ScrollBarThickness = 3
+        Page.CanvasSize = UDim2.new(0, 0, 2.5, 0)
+        
+        local List = Instance.new("UIListLayout")
+        List.Parent = Page
+        List.Padding = UDim.new(0, 10)
+        List.HorizontalAlignment = Enum.HorizontalAlignment.Center
+        
+        Pages[name] = Page
+        return Page
+    end
+
+    local PVP_Page = CreatePage("PVP")
+    local VIS_Page = CreatePage("VISUALS")
+    local MISC_Page = CreatePage("MISC")
+    local SET_Page = CreatePage("SETTINGS")
+    local DC_Page = CreatePage("DISCORD")
+    local SITE_Page = CreatePage("SITE")
+    local UPDATE_Page = CreatePage("UPDATE")
+    PVP_Page.Visible = true
+
+    -- FUNÇÕES DE CRIAÇÃO DE COMPONENTES
+    local function CreateSection(page, text)
+        local Frame = Instance.new("Frame")
+        Frame.Size = UDim2.new(0.95, 0, 0, 28)
+        Frame.BackgroundColor3 = Color3.fromRGB(255, 0, 0) -- AGORA EM VERMELHO
+        Frame.Parent = page
+        AddCorner(Frame, UDim.new(0, 4))
+        
+        local Lab = Instance.new("TextLabel")
+        Lab.Size = UDim2.new(1, 0, 1, 0)
+        Lab.BackgroundTransparency = 1
+        Lab.Text = text:upper()
+        Lab.TextColor3 = Color3.fromRGB(255, 255, 255)
+        Lab.Font = Enum.Font.SourceSansBold
+        Lab.TextSize = 13
+        Lab.Parent = Frame
+    end
+
+    local function NewButton(page, text, callback)
+        local btn = Instance.new("TextButton")
+        btn.Size = UDim2.new(0.9, 0, 0, 42)
+        btn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+        btn.Text = text
+        btn.TextColor3 = Color3.fromRGB(255, 0, 0)
+        btn.Font = Enum.Font.SourceSansBold
+        btn.TextSize = 14
+        btn.Parent = page
+        AddCorner(btn)
+        
+        btn.MouseButton1Click:Connect(function()
+            pcall(callback)
+        end)
+    end
+
+    local function NewSwitch(page, text, callback)
+        local Bg = Instance.new("Frame")
+        Bg.Size = UDim2.new(0.9, 0, 0, 42)
+        Bg.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+        Bg.Parent = page
+        AddCorner(Bg)
+        
+        local Lbl = Instance.new("TextLabel")
+        Lbl.Parent = Bg
+        Lbl.Text = text
+        Lbl.TextColor3 = Color3.fromRGB(200, 200, 200)
+        Lbl.Position = UDim2.new(0.05, 0, 0, 0)
+        Lbl.Size = UDim2.new(0.6, 0, 1, 0)
+        Lbl.BackgroundTransparency = 1
+        Lbl.TextSize = 13
+        
+        local Tgl = Instance.new("TextButton")
+        Tgl.Parent = Bg
+        Tgl.Size = UDim2.new(0, 45, 0, 22)
+        Tgl.Position = UDim2.new(0.82, 0, 0.24, 0)
+        Tgl.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+        Tgl.Text = ""
+        AddCorner(Tgl, UDim.new(1, 0))
+        
+        local Circ = Instance.new("Frame")
+        Circ.Parent = Tgl
+        Circ.Size = UDim2.new(0, 18, 0, 18)
+        Circ.Position = UDim2.new(0.05, 0, 0.09, 0)
+        Circ.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+        AddCorner(Circ, UDim.new(1, 0))
+        
+        local act = false
+        Tgl.MouseButton1Click:Connect(function()
+            act = not act
+            if TweenService then
+                if act then
+                    TweenService:Create(Circ, TweenInfo.new(0.2), {Position = UDim2.new(0.52, 0, 0.09, 0)}):Play()
+                    TweenService:Create(Tgl, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(255, 0, 0)}):Play()
+                else
+                    TweenService:Create(Circ, TweenInfo.new(0.2), {Position = UDim2.new(0.05, 0, 0.09, 0)}):Play()
+                    TweenService:Create(Tgl, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(50, 50, 50)}):Play()
+                end
+            else
+                Circ.Position = act and UDim2.new(0.52, 0, 0.09, 0) or UDim2.new(0.05, 0, 0.09, 0)
+                Tgl.BackgroundColor3 = act and Color3.fromRGB(255, 0, 0) or Color3.fromRGB(50, 50, 50)
+            end
+            pcall(callback, act)
+        end)
+        
+        return {Bg = Bg, Label = Lbl, Toggle = Tgl, Circle = Circ, State = false}
+    end
+
+    local function NewKeybind(page, text, default, callback)
+        local Bg = Instance.new("Frame")
+        Bg.Size = UDim2.new(0.9, 0, 0, 42)
+        Bg.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+        Bg.Parent = page
+        AddCorner(Bg)
+        
+        local Lbl = Instance.new("TextLabel")
+        Lbl.Parent = Bg
+        Lbl.Text = text
+        Lbl.TextColor3 = Color3.fromRGB(200, 200, 200)
+        Lbl.Position = UDim2.new(0.05, 0, 0, 0)
+        Lbl.Size = UDim2.new(0.6, 0, 1, 0)
+        Lbl.BackgroundTransparency = 1
+        Lbl.TextSize = 13
+        
+        local BindBtn = Instance.new("TextButton")
+        BindBtn.Parent = Bg
+        BindBtn.Size = UDim2.new(0, 85, 0, 26)
+        BindBtn.Position = UDim2.new(0.72, 0, 0.19, 0)
+        BindBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+        BindBtn.Text = default.Name
+        BindBtn.TextColor3 = Color3.fromRGB(255, 0, 0)
+        BindBtn.Font = Enum.Font.SourceSansBold
+        BindBtn.TextSize = 13
+        AddCorner(BindBtn)
+        
+        BindBtn.MouseButton1Click:Connect(function()
+            BindBtn.Text = "..."
+            local connection
+            connection = UserInputService.InputBegan:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.Keyboard then
+                    BindBtn.Text = input.KeyCode.Name
+                    pcall(callback, input.KeyCode)
+                    connection:Disconnect()
+                end
+            end)
+        end)
+        
+        return BindBtn
+    end
+
+    local function NewSlider(page, text, min, max, default, callback)
+        local Bg = Instance.new("Frame")
+        Bg.Size = UDim2.new(0.9, 0, 0, 55)
+        Bg.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+        Bg.Parent = page
+        AddCorner(Bg)
+        
+        local Lbl = Instance.new("TextLabel")
+        Lbl.Parent = Bg
+        Lbl.Text = text .. ": " .. default
+        Lbl.TextColor3 = Color3.fromRGB(200, 200, 200)
+        Lbl.Position = UDim2.new(0, 0, 0, 5)
+        Lbl.Size = UDim2.new(1, 0, 0, 20)
+        Lbl.BackgroundTransparency = 1
+        Lbl.TextSize = 13
+        
+        local SliderBar = Instance.new("TextButton")
+        SliderBar.Parent = Bg
+        SliderBar.Size = UDim2.new(0.85, 0, 0, 7)
+        SliderBar.Position = UDim2.new(0.075, 0, 0.65, 0)
+        SliderBar.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+        SliderBar.Text = ""
+        AddCorner(SliderBar)
+        
+        local Fill = Instance.new("Frame")
+        Fill.Parent = SliderBar
+        Fill.Size = UDim2.new((default - min) / (max - min), 0, 1, 0)
+        Fill.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+        AddCorner(Fill)
+        
+        SliderBar.MouseButton1Down:Connect(function()
+            local move = UserInputService.InputChanged:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseMovement then
+                    local pos = math.clamp((input.Position.X - SliderBar.AbsolutePosition.X) / SliderBar.AbsoluteSize.X, 0, 1)
+                    Fill.Size = UDim2.new(pos, 0, 1, 0)
+                    local val = math.floor(min + (max - min) * pos)
+                    Lbl.Text = text .. ": " .. val
+                    pcall(callback, val)
+                end
+            end)
+            
+            local release
+            release = UserInputService.InputEnded:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                    move:Disconnect()
+                    release:Disconnect()
+                end
+            end)
+        end)
+    end
+
+    -- ============================================
+    -- PÁGINA PVP - CORRIGIDA COM AUTOFARM CORRETO
+    -- ============================================
+
+    CreateSection(PVP_Page, "Guns Mods")
+
+    -- OVERPOWER GUNS MOD (AGORA É UM SWITCH TOGGLE)
+    NewSwitch(PVP_Page, "OVER POWER GUNS MOD", function(s)
+        ToggleOverpowerGuns(s)
+    end)
+
+    local InfoText = Instance.new("TextLabel")
+    InfoText.Size = UDim2.new(0.9, 0, 0, 30)
+    InfoText.BackgroundTransparency = 1
+    InfoText.Text = "[USE AT YOUR OWN RISK]"
+    InfoText.TextColor3 = Color3.fromRGB(255, 50, 50)
+    InfoText.Font = Enum.Font.SourceSansItalic
+    InfoText.TextSize = 12
+    InfoText.Parent = PVP_Page
+
+    -- FAST FIRE COM OS LINKS OFICIAIS
+    NewSwitch(PVP_Page, "FAST FIRE", function(s)
+        FastFireEnabled = s
+        if s then 
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/v3nenohub/main.lua/refs/heads/main/Fast%20Fire%20Westbound"))()
+            Notify("FAST FIRE ENABLED")
+        else
+            Notify("FAST FIRE DISABLED")
+        end
+    end)
+
+    -- FAST EQUIP + RELOAD COM OS LINKS OFICIAIS
+    NewSwitch(PVP_Page, "FAST EQUIP + RELOAD", function(s)
+        FastEquipReloadEnabled = s
+        if s then 
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/v3nenohub/main.luaa/refs/heads/main/Fast%20Equip%20%2B%20Reload"))()
+            Notify("FAST EQUIP + RELOAD ENABLED")
+        else
+            Notify("FAST EQUIP + RELOAD DISABLED")
+        end
+    end)
+
+    -- NO RECOIL COM OS LINKS OFICIAIS
+    NewSwitch(PVP_Page, "NO RECOIL", function(s)
+        NoRecoilEnabled = s
+        if s then 
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/v3nenohub/main.luaaa/refs/heads/main/No%20recoil%20WestBound"))()
+            Notify("NO RECOIL ENABLED")
+        else
+            Notify("NO RECOIL DISABLED")
+        end
+    end)
+
+    CreateSection(PVP_Page, "Aimbot Settings")
+
+    -- SWITCH DO AIMBOT PC
+    NewSwitch(PVP_Page, "AIMBOT (E)", function(s)
+        getgenv().AimbotEnabled = s
+        AimbotEnabled = s
+        Notify(s and "AIMBOT ENABLED - HOLD E" or "AIMBOT DISABLED")
+    end)
+
+    -- NOVO: AIMBOT MOBILE (TOGGLE ALWAYS ON)
+    NewSwitch(PVP_Page, "AIMBOT MOBILE", function(s)
+        AimbotMobileAlwaysOn = s
+        AimbotMobileEnabled = s
+        if s then
+            getgenv().AimbotEnabled = false -- Desativa aimbot PC
+            Notify("AIMBOT MOBILE ENABLED - ALWAYS ON")
+        else
+            Notify("AIMBOT MOBILE DISABLED")
+        end
+    end)
+
+    -- TEAM CHECK
+    NewSwitch(PVP_Page, "TEAM CHECK", function(s)
+        AimbotTeamCheck = s
+        Notify(s and "TEAM CHECK ENABLED" or "TEAM CHECK DISABLED")
+    end)
+
+    -- FRIEND CHECK
+    NewSwitch(PVP_Page, "FRIEND CHECK", function(s)
+        getgenv().FriendCheckEnabled = s
+        FriendCheckEnabled = s
+        Notify(s and "FRIEND CHECK ENABLED" or "FRIEND CHECK DISABLED")
+    end)
+
+    -- CONFIGURAÇÃO DO FOV
+    NewSlider(PVP_Page, "AIMBOT FOV SIZE", 50, 300, getgenv().AimbotFOV, function(v)
+        getgenv().AimbotFOV = v
+        if FOVCircle then FOVCircle.Radius = v end
+        Notify("FOV SIZE: " .. v)
+    end)
+
+    -- TECLA DO AIMBOT
+    NewKeybind(PVP_Page, "AIMBOT KEYBIND", AimBind, function(k)
+        getgenv().AimbotKey = k
+        AimBind = k
+        Notify("AIMBOT KEY: " .. k.Name)
+    end)
+
+    CreateSection(PVP_Page, "Autofarm System")
+
+    local FarmInfo = Instance.new("TextLabel")
+    FarmInfo.Size = UDim2.new(0.9, 0, 0, 120)
+    FarmInfo.BackgroundTransparency = 1
+    FarmInfo.TextColor3 = Color3.fromRGB(160, 160, 160)
+    FarmInfo.Text = [[
+AUTO FARM MONEY GUIDE
+
+1. Click 'AUTO FARM MONEY' button below
+2. New panel will open - click 'START'
+3. Walk around ONCE in your game
+4. Reset your character (R key)
+5. If it doesn't work: Leave game & repeat]]
+    FarmInfo.Font = Enum.Font.SourceSansItalic
+    FarmInfo.TextSize = 13
+    FarmInfo.TextWrapped = true
+    FarmInfo.Parent = PVP_Page
+
+    -- BOTÃO DE AUTO FARM MONEY CORRIGIDO (COM O LINK QUE VOCÊ PEDIU)
+    NewButton(PVP_Page, "AUTO FARM MONEY", function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/v3nenohub/WESTBOUND-AUTO-FARM-DINHEIRO-/refs/heads/main/WESTBOUND%20-%20AUTOFARM%20DINHEIRO"))()
+        Notify("AUTO FARM MONEY ACTIVATED")
+    end)
+
+    -- ============================================
+    -- PÁGINA VISUALS - COM ESP PLAYERS E ANIMALS ATUALIZADOS
+    -- ============================================
+
+    CreateSection(VIS_Page, "ESP PLAYERS")
+
+    NewSwitch(VIS_Page, "ESP BODY", function(s)
+        ESP_Body_Enabled = s
+        Notify(s and "PLAYER ESP BODY ENABLED" or "PLAYER ESP BODY DISABLED")
+    end)
+
+    NewSwitch(VIS_Page, "PLAYER NAMES", function(s)
+        ESP_Names_Enabled = s
+        Notify(s and "PLAYER NAMES ENABLED" or "PLAYER NAMES DISABLED")
+    end)
+
+    NewSwitch(VIS_Page, "DISTANCE INFO", function(s)
+        ESP_Distance_Enabled = s
+        Notify(s and "DISTANCE INFO ENABLED" or "DISTANCE INFO DISABLED")
+    end)
+
+    -- NOVO ESP LIFE PLAYER
+    NewSwitch(VIS_Page, "ESP LIFE PLAYER", function(s)
+        ESP_Life_Enabled = s
+        Notify(s and "PLAYER LIFE ESP ENABLED" or "PLAYER LIFE ESP DISABLED")
+    end)
+
+    -- Inicializar ESP Players PC
+    InitializeESP()
+
+    -- NOVO: ESP PLAYERS MOBILE
+    CreateSection(VIS_Page, "ESP PLAYERS [MOBILE]")
+
+    NewSwitch(VIS_Page, "ESP BODY [MOBILE]", function(s)
+        ESP_Body_Mobile_Enabled = s
+        if s then
+            InitializeMobileESP()
+            Notify("ESP BODY MOBILE ENABLED")
+        else
+            Notify("ESP BODY MOBILE DISABLED")
+        end
+    end)
+
+    NewSwitch(VIS_Page, "ESP NAME [MOBILE]", function(s)
+        ESP_Names_Mobile_Enabled = s
+        if s or ESP_Distance_Mobile_Enabled or ESP_Body_Mobile_Enabled then
+            InitializeMobileESP()
+        end
+        Notify(s and "ESP NAME MOBILE ENABLED" or "ESP NAME MOBILE DISABLED")
+    end)
+
+    NewSwitch(VIS_Page, "ESP DISTANCE [MOBILE]", function(s)
+        ESP_Distance_Mobile_Enabled = s
+        if s or ESP_Names_Mobile_Enabled or ESP_Body_Mobile_Enabled then
+            InitializeMobileESP()
+        end
+        Notify(s and "ESP DISTANCE MOBILE ENABLED" or "ESP DISTANCE MOBILE DISABLED")
+    end)
+
+    CreateSection(VIS_Page, "ESP ANIMALS")
+
+    -- SWITCH ANIMAL ESP BODY (ATUALIZADO COM SEU SCRIPT)
+    NewSwitch(VIS_Page, "ANIMAL ESP BODY", function(s)
+        ToggleAnimalBody(s)
+    end)
+
+    -- SWITCH ANIMAL NAMES (ATUALIZADO COM SEU SCRIPT)
+    NewSwitch(VIS_Page, "ANIMAL NAMES", function(s)
+        ToggleAnimalNames(s)
+    end)
+
+    -- SWITCH ANIMAL DISTANCE (ATUALIZADO COM SEU SCRIPT)
+    NewSwitch(VIS_Page, "ANIMAL DISTANCE", function(s)
+        ToggleAnimalDistance(s)
+    end)
+
+    -- ============================================
+    -- PÁGINA MISC - REMOVIDO INFINITE AMMO
+    -- ============================================
+
+    CreateSection(MISC_Page, "LASSO MODS")
+
+    -- FUNÇÕES ANTI LASSO
+    local function ToggleAntiLasso(enabled)
+        if enabled then
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/v3nenohub/anti-la-o-westbound/refs/heads/main/ANTI%20LA%C3%87O%20WEST%20BOUND"))()
+            AntiLasso_Enabled = true
+            Notify("ANTI LASSO ENABLED")
+        else
+            AntiLasso_Enabled = false
+            Notify("ANTI LASSO DISABLED")
+        end
+    end
+
+    -- FUNÇÕES ANTI BREAK FREE
+    local function ToggleAntiBreakFree(enabled)
+        if enabled then
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/v3nenohub/anti-break-free-westbound/refs/heads/main/ANTI%20BREAK%20FREE%20WESTBOUND"))()
+            AntiBreakFree_Enabled = true
+            Notify("ANTI BREAK FREE ENABLED")
+        else
+            AntiBreakFree_Enabled = false
+            Notify("ANTI BREAK FREE DISABLED")
+        end
+    end
+
+    -- SWITCH ANTI LASSO
+    local AntiLassoSwitch = NewSwitch(MISC_Page, "ANTI LASSO", function(s)
+        ToggleAntiLasso(s)
+    end)
+
+    -- SWITCH ANTI BREAK FREE
+    local AntiBreakFreeSwitch = NewSwitch(MISC_Page, "ANTI BREAK FREE", function(s)
+        ToggleAntiBreakFree(s)
+    end)
+
+    CreateSection(MISC_Page, "MANSION FEATURES")
+
+    -- Texto de aviso
+    local WarningText = Instance.new("TextLabel")
+    WarningText.Size = UDim2.new(0.9, 0, 0, 40)
+    WarningText.BackgroundTransparency = 1
+    WarningText.Text = "[USE AT YOUR OWN RISK]\nAlways use in places near the mansion\nto avoid deaths and possible kicks"
+    WarningText.TextColor3 = Color3.fromRGB(255, 50, 50)
+    WarningText.Font = Enum.Font.SourceSansItalic
+    WarningText.TextSize = 12
+    WarningText.TextWrapped = true
+    WarningText.Parent = MISC_Page
+
+    -- FUNÇÕES PARA AUTO TP MANSION
+    local AutoTPMansion_Enabled = false
+    local AutoTPMansion_Connection = nil
+    
+    local function ToggleAutoTPMansion(enabled)
+        AutoTPMansion_Enabled = enabled
+        
+        if enabled then
+            Notify("LOADING AUTO TP MANSION...")
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/v3nenohub/auto-tp-mansio-westbound/refs/heads/main/AUTO%20TP%20MANSIO%20WESTBOUND"))()
+            Notify("AUTO TP MANSION ENABLED!")
+        else
+            if AutoTPMansion_Connection then
+                AutoTPMansion_Connection:Disconnect()
+                AutoTPMansion_Connection = nil
+            end
+            Notify("AUTO TP MANSION DISABLED")
+        end
+    end
+
+    -- SWITCH AUTO TP MANSION
+    local AutoTPMansionSwitch = NewSwitch(MISC_Page, "AUTO TP MANSION", function(s)
+        ToggleAutoTPMansion(s)
+    end)
+
+    -- FUNÇÕES PARA ESP BEST JEWELRY
+    local ESPBestJewelry_Enabled = false
+    local ESPBestJewelry_Connection = nil
+    
+    local function ToggleESPBestJewelry(enabled)
+        ESPBestJewelry_Enabled = enabled
+        
+        if enabled then
+            Notify("LOADING JEWELRY ESP...")
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/v3nenohub/ESP-JOIAS-WESTBOUND-MANSION/refs/heads/main/ESP%20JOIAS%20WESTBOUND%20MANSION"))()
+            Notify("JEWELRY ESP ENABLED!")
+        else
+            if ESPBestJewelry_Connection then
+                ESPBestJewelry_Connection:Disconnect()
+                ESPBestJewelry_Connection = nil
+            end
+            Notify("JEWELRY ESP DISABLED")
+        end
+    end
+
+    -- SWITCH ESP BEST JEWELRY
+    local ESPBestJewelrySwitch = NewSwitch(MISC_Page, "ESP BEST JEWELRY", function(s)
+        ToggleESPBestJewelry(s)
+    end)
+
+    -- ============================================
+    -- PÁGINA SETTINGS - COM NOVA FUNÇÃO MOBILE
+    -- ============================================
+
+    CreateSection(SET_Page, "UI CONFIGURATION")
+
+    local TipLabel = Instance.new("TextLabel")
+    TipLabel.Size = UDim2.new(0.9, 0, 0, 50)
+    TipLabel.BackgroundTransparency = 1
+    TipLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+    TipLabel.Text = "Default toggle key: Left Control\nPress to show/hide the panel"
+    TipLabel.Font = Enum.Font.SourceSansItalic
+    TipLabel.TextSize = 14
+    TipLabel.TextWrapped = true
+    TipLabel.Parent = SET_Page
+
+    NewKeybind(SET_Page, "CHANGE TOGGLE KEY", ToggleKey, function(k)
+        ToggleKey = k
+        Notify("TOGGLE KEY: " .. k.Name)
+    end)
+
+    -- NOVO: BOTÃO FLUTUANTE PARA MOBILE
+    CreateSection(SET_Page, "MOBILE FEATURES")
+    
+    local mobileMinimizeEnabled = false
+    local floatingButton = nil
+    local originalPanelPosition = MainFrame.Position
+    local originalPanelSize = MainFrame.Size
+    
+    local function CreateFloatingButton()
+        if floatingButton then
+            floatingButton:Destroy()
+            floatingButton = nil
+        end
+        
+        floatingButton = Instance.new("TextButton")
+        floatingButton.Name = "MobileMinimizeButton"
+        floatingButton.Size = UDim2.new(0, 50, 0, 50)
+        floatingButton.Position = UDim2.new(0.9, 0, 0.1, 0)
+        floatingButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+        floatingButton.Text = "V"  -- MUDADO DE "M" PARA "V"
+        floatingButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+        floatingButton.Font = Enum.Font.SourceSansBold
+        floatingButton.TextSize = 24  -- AUMENTADO PARA 24
+        floatingButton.ZIndex = 1000
+        floatingButton.Parent = ScreenGui
+        AddCorner(floatingButton, UDim.new(1, 0))
+        
+        -- Tornar arrastável
+        local dragging = false
+        local dragInput, dragStart, startPos
+        
+        floatingButton.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+                dragging = true
+                dragStart = input.Position
+                startPos = floatingButton.Position
+                
+                input.Changed:Connect(function()
+                    if input.UserInputState == Enum.UserInputState.End then
+                        dragging = false
+                    end
+                end)
+            end
+        end)
+        
+        floatingButton.InputChanged:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement then
+                dragInput = input
+            end
+        end)
+        
+        UserInputService.InputChanged:Connect(function(input)
+            if dragging and (input == dragInput) then
+                local delta = input.Position - dragStart
+                floatingButton.Position = UDim2.new(
+                    startPos.X.Scale,
+                    startPos.X.Offset + delta.X,
+                    startPos.Y.Scale,
+                    startPos.Y.Offset + delta.Y
+                )
+            end
+        end)
+        
+        -- Função de toggle do painel
+        floatingButton.MouseButton1Click:Connect(function()
+            if MainFrame.Visible then
+                -- Minimizar
+                MainFrame.Visible = false
+                floatingButton.Text = "V"
+                floatingButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+                Notify("PANEL MINIMIZED - CLICK 'V' TO RESTORE")
+            else
+                -- Restaurar
+                MainFrame.Visible = true
+                floatingButton.Text = "V"
+                floatingButton.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
+                Notify("PANEL RESTORED")
+            end
+        end)
+        
+        -- Efeitos visuais
+        floatingButton.MouseEnter:Connect(function()
+            if floatingButton then
+                floatingButton.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+            end
+        end)
+        
+        floatingButton.MouseLeave:Connect(function()
+            if floatingButton then
+                if MainFrame.Visible then
+                    floatingButton.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
+                else
+                    floatingButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+                end
+            end
+        end)
+        
+        Notify("MOBILE MINIMIZE BUTTON CREATED - DRAGGABLE")
+    end
+    
+    -- Switch para ativar/desativar botão flutuante
+    NewSwitch(SET_Page, "MOBILE MINIMIZE PANEL", function(s)
+        mobileMinimizeEnabled = s
+        if s then
+            CreateFloatingButton()
+            Notify("MOBILE MINIMIZE ENABLED")
+        else
+            if floatingButton then
+                floatingButton:Destroy()
+                floatingButton = nil
+            end
+            MainFrame.Visible = true -- Garantir que painel esteja visível
+            Notify("MOBILE MINIMIZE DISABLED")
+        end
+    end)
+
+    -- ============================================
+    -- PÁGINAS RESTANTES
+    -- ============================================
+
+    -- DISCORD (COM NOVO LINK)
+    CreateSection(DC_Page, "COMMUNITY V3NENO HUB")
+    
+    local DiscordInfo = Instance.new("TextLabel")
+    DiscordInfo.Size = UDim2.new(0.9, 0, 0, 100)
+    DiscordInfo.BackgroundTransparency = 1
+    DiscordInfo.TextColor3 = Color3.fromRGB(180, 180, 180)
+    DiscordInfo.Text = "Join our global Roblox community! Everyone is welcome to be part of our family. Follow community rules, maintain friendly environment."
+    DiscordInfo.Font = Enum.Font.SourceSansItalic
+    DiscordInfo.TextSize = 14
+    DiscordInfo.TextWrapped = true
+    DiscordInfo.Parent = DC_Page
+    
+    local DiscordBtn = Instance.new("TextButton")
+    DiscordBtn.Size = UDim2.new(0.9, 0, 0, 50)
+    DiscordBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    DiscordBtn.Text = "COPY DISCORD LINK"
+    DiscordBtn.TextColor3 = Color3.fromRGB(255, 0, 0)
+    DiscordBtn.Font = Enum.Font.SourceSansBold
+    DiscordBtn.TextSize = 14
+    DiscordBtn.Parent = DC_Page
+    AddCorner(DiscordBtn)
+    
+    DiscordBtn.MouseButton1Click:Connect(function()
+        pcall(function()
+            setclipboard("https://discord.gg/3JSw8fDQbu")
+            Notify("DISCORD LINK COPIED!")
+        end)
+    end)
+
+    -- SITE (COM NOVO LINK)
+    CreateSection(SITE_Page, "COMMUNITY V3NENO HUB")
+    
+    local SiteInfo = Instance.new("TextLabel")
+    SiteInfo.Size = UDim2.new(0.9, 0, 0, 100)
+    SiteInfo.BackgroundTransparency = 1
+    SiteInfo.TextColor3 = Color3.fromRGB(180, 180, 180)
+    SiteInfo.Text = "Find direct links for scripts from various games, download best executors, get full access to official V3NENO HUB panel with all games integrated."
+    SiteInfo.Font = Enum.Font.SourceSansItalic
+    SiteInfo.TextSize = 14
+    SiteInfo.TextWrapped = true
+    SiteInfo.Parent = SITE_Page
+    
+    local SiteBtn = Instance.new("TextButton")
+    SiteBtn.Size = UDim2.new(0.9, 0, 0, 50)
+    SiteBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    SiteBtn.Text = "COPY WEBSITE LINK"
+    SiteBtn.TextColor3 = Color3.fromRGB(255, 0, 0)
+    SiteBtn.Font = Enum.Font.SourceSansBold
+    SiteBtn.TextSize = 14
+    SiteBtn.Parent = SITE_Page
+    AddCorner(SiteBtn)
+    
+    SiteBtn.MouseButton1Click:Connect(function()
+        pcall(function()
+            setclipboard("https://trxshhub.lovable.app")
+            Notify("WEBSITE LINK COPIED!")
+        end)
+    end)
+
+    -- ============================================
+    -- ~~ PÁGINA UPDATE ~~ COM NOVAS ATUALIZAÇÕES
+    -- ============================================
+
+    CreateSection(UPDATE_Page, "UPDATE INFORMATION - V3NENO HUB V3.0")
+
+    -- Função para criar cabeçalho com destaque NA COR VERMELHA
+    local function CreateHeader(text)
+        local HeaderFrame = Instance.new("Frame")
+        HeaderFrame.Size = UDim2.new(0.95, 0, 0, 32)
+        HeaderFrame.BackgroundColor3 = Color3.fromRGB(255, 0, 0) -- AGORA EM VERMELHO
+        HeaderFrame.Parent = UPDATE_Page
+        AddCorner(HeaderFrame, UDim.new(0, 4))
+        
+        local HeaderLabel = Instance.new("TextLabel")
+        HeaderLabel.Size = UDim2.new(1, 0, 1, 0)
+        HeaderLabel.BackgroundTransparency = 1
+        HeaderLabel.Text = "» " .. text:upper() .. " «"
+        HeaderLabel.TextColor3 = Color3.fromRGB(255, 255, 255) -- TEXTO BRANCO PARA CONTRASTE
+        HeaderLabel.Font = Enum.Font.SourceSansBold
+        HeaderLabel.TextSize = 14
+        HeaderLabel.Parent = HeaderFrame
+        
+        return HeaderFrame
+    end
+
+    -- Função para criar item com ponto branco
+    local function CreateItem(text, hasDot)
+        local ItemFrame = Instance.new("Frame")
+        ItemFrame.Size = UDim2.new(0.9, 0, 0, 24)
+        ItemFrame.BackgroundTransparency = 1
+        ItemFrame.Parent = UPDATE_Page
+        
+        if hasDot then
+            local Dot = Instance.new("Frame")
+            Dot.Size = UDim2.new(0, 6, 0, 6)
+            Dot.Position = UDim2.new(0, 5, 0.5, -3)
+            Dot.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+            Dot.Parent = ItemFrame
+            AddCorner(Dot, UDim.new(1, 0))
+        end
+        
+        local ItemLabel = Instance.new("TextLabel")
+        ItemLabel.Size = UDim2.new(1, hasDot and -15 or 0, 1, 0)
+        ItemLabel.Position = UDim2.new(0, hasDot and 15 or 0, 0, 0)
+        ItemLabel.BackgroundTransparency = 1
+        ItemLabel.Text = text
+        ItemLabel.TextColor3 = Color3.fromRGB(220, 220, 220)
+        ItemLabel.Font = Enum.Font.SourceSans
+        ItemLabel.TextSize = 12
+        ItemLabel.TextXAlignment = Enum.TextXAlignment.Left
+        ItemLabel.TextWrapped = true
+        ItemLabel.Parent = ItemFrame
+        
+        return ItemFrame
+    end
+
+    -- Função para criar linha separadora
+    local function CreateSeparator()
+        local SepFrame = Instance.new("Frame")
+        SepFrame.Size = UDim2.new(0.95, 0, 0, 15)
+        SepFrame.BackgroundTransparency = 1
+        SepFrame.Parent = UPDATE_Page
+        
+        local Line = Instance.new("Frame")
+        Line.Size = UDim2.new(0.8, 0, 0, 1)
+        Line.Position = UDim2.new(0.1, 0, 0.5, 0)
+        Line.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+        Line.Parent = SepFrame
+        
+        return SepFrame
+    end
+
+    -- Conteúdo da página UPDATE organizado conforme solicitado
+    CreateHeader("V3NENO HUB V3.0 - WESTBOUND PANEL")
+    CreateItem("OWNER & DEVELOPER: HENRIQSZ7", false)
+    CreateItem("OFFICIAL GROUP: V3NENO HUB", false)
+    CreateItem("SUPPORT: DISCORD COMMUNITY", false)
+    
+    CreateSeparator()
+    CreateHeader("~ EXECUTORS ~")
+    CreateItem("• SUPPORT XENO, SOLARA & OTHER EXECUTORS", true)
+    CreateItem("• FULL MOBILE COMPATIBILITY", true)
+    
+    CreateSeparator()
+    CreateHeader("~ AIMBOT UPDATES ~")
+    CreateItem("• AIMBOT PC (HOLD E) - 100% FUNCTIONAL", true)
+    CreateItem("• AIMBOT MOBILE (ALWAYS ON TOGGLE) - NEW!", true)
+    CreateItem("• TEAM CHECK OPTION", true)
+    CreateItem("• FRIEND CHECK OPTION", true)
+    CreateItem("• CUSTOMIZABLE FOV SIZE", true)
+    
+    CreateSeparator()
+    CreateHeader("~ ESP SYSTEM ~")
+    CreateItem("• ESP BODY (PC)", true)
+    CreateItem("• ESP NAMES (PC)", true)
+    CreateItem("• ESP DISTANCE (PC)", true)
+    CreateItem("• ESP LIFE PLAYER (PC)", true)
+    CreateItem("• ESP BODY [MOBILE] (NEW!)", true)
+    CreateItem("• ESP NAME [MOBILE] (NEW!)", true)
+    CreateItem("• ESP DISTANCE [MOBILE] (NEW!)", true)
+    CreateItem("• PERFORMANCE OPTIMIZED FOR MOBILE", true)
+    
+    CreateSeparator()
+    CreateHeader("~ MOBILE FEATURES ~")
+    CreateItem("• AIMBOT MOBILE (TOGGLE ALWAYS ON)", true)
+    CreateItem("• ESP MOBILE COMPATIBLE", true)
+    CreateItem("• MOBILE MINIMIZE PANEL (NEW!)", true)
+    CreateItem("• FLOATING 'V' BUTTON (DRAGGABLE)", true)
+    CreateItem("• TOUCH-OPTIMIZED INTERFACE", true)
+    
+    CreateSeparator()
+    CreateHeader("~ MISC NEWS ~")
+    CreateItem("• ANTI LASSO", true)
+    CreateItem("• ANTI BREAK FREE", true)
+    CreateItem("• AUTO TP MANSION", true)
+    CreateItem("• ESP BEST JEWELRY", true)
+    
+    CreateSeparator()
+    CreateHeader("~ ESP ANIMALS UPDATES ~")
+    CreateItem("• ESP ANIMALS BODY", true)
+    CreateItem("• ESP ANIMALS NAMES", true)
+    CreateItem("• ESP ANIMALS DISTANCE", true)
+    CreateItem("• LEGENDARY ANIMALS HIGHLIGHT", true)
+    CreateItem("• RARITY COLOR SYSTEM", true)
+    
+    CreateSeparator()
+    CreateHeader("~ GUNS MODS ~")
+    CreateItem("• OVER POWER GUNS MOD (TOGGLE)", true)
+    CreateItem("• FAST FIRE (OFFICIAL LINK)", true)
+    CreateItem("• FAST EQUIP + RELOAD (OFFICIAL LINK)", true)
+    CreateItem("• NO RECOIL (OFFICIAL LINK)", true)
+    CreateItem("• ALL WESTBOUND WEAPONS SUPPORTED", true)
+    
+    CreateSeparator()
+    CreateHeader("~ AUTOFARM SYSTEM ~")
+    CreateItem("• AUTO FARM MONEY (OFFICIAL LINK)", true)
+    CreateItem("• STEP-BY-STEP GUIDE IN PANEL", true)
+    CreateItem("• WORKING ON GOOD EXECUTORS", true)
+    
+    CreateSeparator()
+    
+    -- FAIXA "POSSÍVEIS FALHAS" NA COR VERMELHA
+    CreateHeader("POSSIBLE FAILURES")
+    
+    local FailureFrame = Instance.new("Frame")
+    FailureFrame.Size = UDim2.new(0.95, 0, 0, 80)
+    FailureFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    FailureFrame.Parent = UPDATE_Page
+    AddCorner(FailureFrame, UDim.new(0, 4))
+    
+    local FailureLabel = Instance.new("TextLabel")
+    FailureLabel.Size = UDim2.new(1, -10, 1, -10)
+    FailureLabel.Position = UDim2.new(0.05, 0, 0.05, 0)
+    FailureLabel.BackgroundTransparency = 1
+    FailureLabel.Text = "SOME FEATURES MAY NOT WORK IF YOU USE A VERY WEAK EXECUTOR LIKE OVERPOWERGUNS AND AUTOFARM MONEY, USE A GOOD FREE EXECUTOR OR A PAID EXECUTOR"
+    FailureLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    FailureLabel.Font = Enum.Font.SourceSansBold
+    FailureLabel.TextSize = 11
+    FailureLabel.TextWrapped = true
+    FailureLabel.TextXAlignment = Enum.TextXAlignment.Left
+    FailureLabel.Parent = FailureFrame
+    
+    CreateSeparator()
+    
+    -- ÚLTIMA ATUALIZAÇÃO
+    CreateHeader("LAST UPDATE - V3.0")
+    
+    local LastUpdateFrame = Instance.new("Frame")
+    LastUpdateFrame.Size = UDim2.new(0.95, 0, 0, 100)
+    LastUpdateFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    LastUpdateFrame.Parent = UPDATE_Page
+    AddCorner(LastUpdateFrame, UDim.new(0, 4))
+    
+    local LastUpdateLabel = Instance.new("TextLabel")
+    LastUpdateLabel.Size = UDim2.new(1, -10, 1, -10)
+    LastUpdateLabel.Position = UDim2.new(0.05, 0, 0.05, 0)
+    LastUpdateLabel.BackgroundTransparency = 1
+    LastUpdateLabel.Text = "• ADDED: AIMBOT MOBILE (ALWAYS ON)\n• ADDED: ESP BODY/NAME/DISTANCE [MOBILE]\n• ADDED: MOBILE MINIMIZE PANEL\n• ADDED: FLOATING 'V' BUTTON (DRAGGABLE)\n• OPTIMIZED: ESP FOR MOBILE (NO LAG)\n• FIXED: ESP NOT WORKING ON MOBILE"
+    LastUpdateLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
+    LastUpdateLabel.Font = Enum.Font.SourceSansBold
+    LastUpdateLabel.TextSize = 12
+    LastUpdateLabel.TextWrapped = true
+    LastUpdateLabel.TextXAlignment = Enum.TextXAlignment.Left
+    LastUpdateLabel.Parent = LastUpdateFrame
+    
+    CreateSeparator()
+    
+    -- Mensagem final
+    local ThanksFrame = Instance.new("Frame")
+    ThanksFrame.Size = UDim2.new(0.95, 0, 0, 40)
+    ThanksFrame.BackgroundTransparency = 1
+    ThanksFrame.Parent = UPDATE_Page
+    
+    local ThanksLabel = Instance.new("TextLabel")
+    ThanksLabel.Size = UDim2.new(1, 0, 1, 0)
+    ThanksLabel.BackgroundTransparency = 1
+    ThanksLabel.Text = "THANKS FOR USING V3NENO HUB!"
+    ThanksLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
+    ThanksLabel.Font = Enum.Font.SourceSansBold
+    ThanksLabel.TextSize = 14
+    ThanksLabel.Parent = ThanksFrame
+
+    -- ============================================
+    -- SIDEBAR BUTTONS
+    -- ============================================
+
+    local TabButtons = {}
+    local function CreateTabBtn(name, order)
+        local btn = Instance.new("TextButton")
+        btn.Parent = SideBar
+        btn.Size = UDim2.new(0.9, 0, 0, 36)
+        btn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+        btn.Text = name
+        btn.TextColor3 = Color3.fromRGB(200, 200, 200)
+        btn.Font = Enum.Font.SourceSansBold
+        btn.TextSize = 13
+        btn.LayoutOrder = order
+        AddCorner(btn)
+        
+        btn.MouseButton1Click:Connect(function()
+            for _, p in pairs(Pages) do p.Visible = false end
+            Pages[name].Visible = true
+            for _, button in pairs(TabButtons) do button.TextColor3 = Color3.fromRGB(200, 200, 200) end
+            btn.TextColor3 = Color3.fromRGB(255, 0, 0)
+        end)
+        
+        TabButtons[name] = btn
+        return btn
+    end
+
+    local PVPBtn = CreateTabBtn("PVP", 1)
+    PVPBtn.TextColor3 = Color3.fromRGB(255, 0, 0)
+    CreateTabBtn("VISUALS", 2)
+    CreateTabBtn("MISC", 3)
+    CreateTabBtn("SETTINGS", 4)
+    CreateTabBtn("DISCORD", 5)
+    CreateTabBtn("SITE", 6)
+    CreateTabBtn("UPDATE", 7)  -- BOTÃO UPDATE NA LATERAL
+
+    -- ============================================
+    -- USER PROFILE
+    -- ============================================
+
+    local UserFrame = Instance.new("Frame")
+    UserFrame.Parent = MainFrame
+    UserFrame.Position = UDim2.new(0.02, 0, 0.79, 0)
+    UserFrame.Size = UDim2.new(0, 140, 0, 70)
+    UserFrame.BackgroundTransparency = 1
+
+    local AvatarBack = Instance.new("Frame")
+    AvatarBack.Size = UDim2.new(0, 48, 0, 48)
+    AvatarBack.Position = UDim2.new(0, 0, 0.5, -24)
+    AvatarBack.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+    AvatarBack.Parent = UserFrame
+    AddCorner(AvatarBack, UDim.new(1, 0))
+
+    local Img = Instance.new("ImageLabel")
+    Img.Size = UDim2.new(0, 44, 0, 44)
+    Img.Position = UDim2.new(0.5, -22, 0.5, -22)
+    Img.Image = Players:GetUserThumbnailAsync(LocalPlayer.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size420x420)
+    Img.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    Img.Parent = AvatarBack
+    AddCorner(Img, UDim.new(1, 0))
+
+    local Welcome = Instance.new("TextLabel")
+    Welcome.Parent = UserFrame
+    Welcome.Position = UDim2.new(0.42, 0, 0.28, 0)
+    Welcome.Size = UDim2.new(0.55, 0, 0, 15)
+    Welcome.Text = "Welcome,"
+    Welcome.TextColor3 = Color3.fromRGB(150, 150, 150)
+    Welcome.Font = Enum.Font.SourceSans
+    Welcome.TextSize = 13
+    Welcome.BackgroundTransparency = 1
+    Welcome.TextXAlignment = Enum.TextXAlignment.Left
+
+    local UserName = Instance.new("TextLabel")
+    UserName.Parent = UserFrame
+    UserName.Position = UDim2.new(0.42, 0, 0.48, 0)
+    UserName.Size = UDim2.new(0.55, 0, 0, 15)
+    UserName.Text = LocalPlayer.Name
+    UserName.TextColor3 = Color3.fromRGB(255, 255, 255)
+    UserName.Font = Enum.Font.SourceSansBold
+    UserName.TextSize = 14
+    UserName.BackgroundTransparency = 1
+    UserName.TextXAlignment = Enum.TextXAlignment.Left
+
+    -- ============================================
+    -- CLOSE BUTTON COM INTERAÇÃO BONITA
+    -- ============================================
+
+    local CloseBtn = Instance.new("TextButton")
+    CloseBtn.Parent = MainFrame
+    CloseBtn.Text = "X"
+    CloseBtn.Size = UDim2.new(0, 32, 0, 32)
+    CloseBtn.Position = UDim2.new(0.93, 0, 0.02, 0)
+    CloseBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+    CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    CloseBtn.Font = Enum.Font.SourceSansBold
+    CloseBtn.TextSize = 18
+    AddCorner(CloseBtn, UDim.new(0, 6))
+    
+    -- Efeito hover vermelho para o botão X
+    CloseBtn.MouseEnter:Connect(function()
+        CloseBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+        CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    end)
+    
+    CloseBtn.MouseLeave:Connect(function()
+        CloseBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+        CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    end)
+
+    CloseBtn.MouseButton1Click:Connect(function()
+        -- Limpar todas as conexões
+        for _, conn in pairs(ActiveConnections) do
+            pcall(function() conn:Disconnect() end)
+        end
+        
+        -- Limpar ESP Players PC
+        for _, data in pairs(ESPStorage.Players) do
+            if data then
+                pcall(function()
+                    if data.Connection then data.Connection:Disconnect() end
+                    if data.Highlight then data.Highlight:Destroy() end
+                    if data.NameTag then pcall(function() data.NameTag:Remove() end) end
+                    if data.LifeTag then pcall(function() data.LifeTag:Remove() end) end -- LIMPAR LIFE TAG
+                end)
+            end
+        end
+        
+        -- Limpar ESP Players Mobile
+        for player, data in pairs(MobileESPStorage) do
+            if data then
+                if data.Connection then
+                    data.Connection:Disconnect()
+                end
+                if data.Billboard then
+                    data.Billboard:Destroy()
+                end
+                if data.Highlight then
+                    data.Highlight:Destroy()
+                end
+            end
+        end
+        MobileESPStorage = {}
+        
+        -- Limpar ESP Animals
+        CleanupAnimalESP()
+        
+        -- Limpar botão flutuante
+        if floatingButton then
+            floatingButton:Destroy()
+            floatingButton = nil
+        end
+        
+        -- Restaurar estatísticas de armas originais se necessário
+        if OverpowerGunsEnabled then
+            RestoreOriginalGuns()
+        end
+        
+        if FOVCircle then pcall(function() FOVCircle:Remove() end) end
+        ScreenGui:Destroy()
+        Notify("PANEL CLOSED")
+    end)
+
+    -- ============================================
+    -- TOGGLE INTERFACE
+    -- ============================================
+
+    local toggleConnection = UserInputService.InputBegan:Connect(function(input, gameProcessed)
+        if not gameProcessed and input.KeyCode == ToggleKey then
+            MainFrame.Visible = not MainFrame.Visible
+        end
+    end)
+    table.insert(ActiveConnections, toggleConnection)
+
+    -- ============================================
+    -- INICIALIZAÇÃO FINAL
+    -- ============================================
+
+    task.spawn(function()
+        task.wait(1)
+        Notify("V3NENO HUB LOADED SUCCESSFULLY!")
+        Notify("PRESS " .. ToggleKey.Name .. " TO TOGGLE MENU")
+        
+        -- Verificar se é mobile
+        if UserInputService.TouchEnabled then
+            Notify("MOBILE DETECTED - USE MOBILE FEATURES")
+            Notify("CHECK 'UPDATE' TAB FOR NEW FEATURES")
+        end
+    end)
+
+    print("===========================================")
+    print("V3NENO HUB LOADED SUCCESSFULLY")
+    print("===========================================")
+end
+
+-- ============================================
+-- INICIALIZAÇÃO
+-- ============================================
+
+CreateLoginPanel()
